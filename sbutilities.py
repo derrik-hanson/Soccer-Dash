@@ -27,7 +27,96 @@ def join_events_split_to_frames(df_frames, events_split_dict):
         out_dict[e] = events_split_dict[str(e)].join(df_frames.set_index('event_uuid'),on='id')
         
     return out_dict
+# --------------
+# player tools
+# --------------
+def get_starting_players(df, team):
+    """
+    expects dataframe input of type returned by: 
+    df = sb.events(match_id=3795506, split=True, flatten_attrs=True)
+    ---
+    team: str
+    """
+    df_xis = df['starting_xis']
+    lineup = df_xis[df_xis['team']==team]['tactics'].iloc[0]['lineup']
 
+    p_hold = []
+    for idx, _ in enumerate(lineup):
+        p1 = pd.DataFrame([lineup[idx]['player']])
+        p2 = pd.DataFrame([lineup[idx]['position']])
+        p3 = pd.DataFrame([lineup[idx]['jersey_number']])
+
+        df_players = pd.concat([p1, p2, p3], axis=1)
+        df_players.columns = ['player_id', 'player_name', 'position_id', 'position_name', 'jersey_number']
+
+        p_hold.append(df_players)
+
+    return pd.concat(p_hold).reset_index(drop=True)
+
+def get_substitution_players(df, team):
+    """
+    expects dataframe input of type returned by: 
+    df = sb.events(match_id=3795506, split=True, flatten_attrs=True)
+    ---
+    team: str
+    """
+    
+    subs = df['substitutions']
+    out = subs[subs['team']==team][['substitution_replacement','position']].reset_index(drop=True)
+    out.columns = ['player_name', 'position_name']
+    return out
+
+def get_starting_players(df, team):
+    """
+    expects dataframe input of type returned by: 
+    df = sb.events(match_id=3795506, split=True, flatten_attrs=True)
+    ---
+    team: str
+    """
+    df_xis = df['starting_xis']
+    lineup = df_xis[df_xis['team']==team]['tactics'].iloc[0]['lineup']
+
+    p_hold = []
+    for idx, _ in enumerate(lineup):
+        p1 = pd.DataFrame([lineup[idx]['player']])
+        p2 = pd.DataFrame([lineup[idx]['position']])
+        p3 = pd.DataFrame([lineup[idx]['jersey_number']])
+
+        df_players = pd.concat([p1, p2, p3], axis=1)
+        df_players.columns = ['player_id', 'player_name', 'position_id', 'position_name', 'jersey_number']
+
+        p_hold.append(df_players)
+
+    return pd.concat(p_hold).reset_index(drop=True)
+
+
+def get_all_team_players_match(df, team):
+    """
+    expects dataframe input of type returned by: 
+    df = sb.events(match_id=3795506, split=True, flatten_attrs=True)
+    ---
+    team: str
+    """
+    
+    starts = get_starting_players(df, team)
+    subs = get_substitution_players(df, team)
+    
+    common_cols = ['player_name', 'position_name']
+    return pd.concat([starts[common_cols], subs[common_cols]]).reset_index(drop=True)
+
+
+# basic version to be improved with team names
+def get_player_names_from_events(df_split):
+    lineups = df_split['starting_xis']['tactics'].values
+    team1 = [p['player']['name'] for p in lineups[0]['lineup']]
+    team2 = [p['player']['name'] for p in lineups[1]['lineup']]
+    starters = team1 + team2
+    #print(f"--- starters --- \n {starters}")
+    
+    subs = euro_final_events['substitutions']['substitution_replacement'].tolist()
+    #print(f"--- subs --- \n {subs}")
+    
+    return starters + subs
 
 # mostly unnecessary now
 def extract_shot_details(df_a):
