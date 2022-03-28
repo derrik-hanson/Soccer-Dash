@@ -28,12 +28,16 @@ def get_team_events(df_act, active_team, event_type):
     df_team_events = df_act[df_act['possession_team']==active_team]
     return df_team_events
 
-
+def plot_player_shots(df_e, selected_player, selected_event='shots'):
+    df_pl_ev = get_player_events(euro_combo_df, selected_player, selected_event)
+    fig_player_ev = socly.plot_shots_xg(df_pl_ev, title=f"{selected_event} - {selected_player}")
+    return fig_player_ev
 
 
 # ------------------
 # -- Data 
 # ------------------
+
 
 all_comps = sb.competitions()
 comps_360 = all_comps[all_comps['match_available_360'].apply(lambda x: isinstance(x, str))]
@@ -85,30 +89,28 @@ app.layout = html.Div(children=[
     ),
 
     # -------------------------------
+    html.H1(children='Team Analysis'),
+    dcc.Graph(
+        id='team-shot-graph',
+        figure=fig_team_shots
+    ),
+
+    # -------------------------------
     html.H1(children='Player Analysis'),
 
     dcc.Dropdown(
         options = italy_player_opts,
         value = 'Marco Verratti', 
         placeholder = 'select a player',
-        id='player_dropdown'
+        id='player-dropdown'
     ),
 
     html.Div(id='player_name_output'),
 
     dcc.Graph(
-        id='player-shot-graph',
+        id='player-shot-plot',
         figure=fig_player_shots
-    ),
-
-    # -------------------------------
-    html.H1(children='Team Analysis'),
-    dcc.Graph(
-        id='team-shot-graph',
-        figure=fig_team_shots
     )
-
-    #dash_table.DataTable(df.to_dict('records'), [{"name": i, "id": i} for i in df.columns])
 
 ])
 
@@ -118,10 +120,20 @@ app.layout = html.Div(children=[
 
 @app.callback(
     Output(component_id='player_name_output', component_property='children'),
-    Input(component_id='player_dropdown', component_property='value')
+    Output(component_id='player-shot-plot', component_property='figure'),
+    Input(component_id='player-dropdown', component_property='value')
 )
-def update_output_div(input_value):
-    return f'Selected Player: {input_value}'
+def update_output_div(selected_player):
+    name_string = f'Selected Player: {selected_player}'
+    
+    print(selected_player)
+    # source data
+    df_e = euro_combo_df
+
+    # shot plot
+    shot_plot = plot_player_shots(df_e, selected_player, 'shots')
+
+    return name_string, shot_plot
 
 # ------------------
 # Run App
@@ -129,3 +141,7 @@ def update_output_div(input_value):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
+
+
+

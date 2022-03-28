@@ -190,7 +190,22 @@ def plot_shots_xg(df, pens=False, title=None):
         title_string=title
     else: 
         title_string="Shots - xG"
+        
+    # check for no shot data 
+    if len(df) == 0:
+        fig = px.scatter()
+        fig = draw_pitch_lines(fig)
+        fig.add_annotation(x=30, y=10,
+            text="No Shots to Display",
+            showarrow=False,
+            yshift=0, 
+            font=dict(
+                size=18,
+                color='Grey')
+            )
+        return fig
     
+    # proceeding with shot processing
     x = [loc[0] for loc in df['location'].values]
     y = [loc[1] for loc in df['location'].values]
     
