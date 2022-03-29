@@ -1,5 +1,6 @@
 
-
+import dash
+import dash_bootstrap_components as dbc
 from dash import Dash, dash_table, html, dcc, Input, Output
 
 import pandas as pd
@@ -103,25 +104,48 @@ eng_player_opts = eng_all_players['player_name'].unique().tolist()
 # -- Dash App 
 # ------------------
 
-app = Dash(__name__)
+app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-app.layout = html.Div(children=[
+navbar = dbc.NavbarSimple(
+            children=[
+                dbc.NavLink("Home", href="/", active="exact"),
+                dbc.NavLink("Player Study", href="/player-page", active="exact"),
+                dbc.NavLink("Team Study", href='/team-page', active="exact"),
+                dbc.NavLink("Frame ", href='/frame-page', active="exact"),
+            ],
+            brand="Socly Insight Engine",
+            color="primary",
+            dark=True,
+        )
 
+content = dbc.Container(id="page-content", className="pt-4")
+
+app.layout = html.Div([dcc.Location(id="url"), navbar, content])
+
+# -------------------------------
+# Team and Frame placeholder
+layout_frame_page = html.Div(children=[
     html.H1(children='A Single Frame from the Euro Final 2020'),
 
     dcc.Graph(
         id='fz-graph',
         figure=fig_frame
     ),
-
-    # -------------------------------
+])
+# -------------------------------
+# Team and Frame placeholder
+layout_team_page = html.Div(children=[
     html.H1(children='Team Analysis'),
+
     dcc.Graph(
         id='team-shot-graph',
         figure=fig_team_shots
     ),
+])
 
-    # -------------------------------
+# -------------------------------
+# player analysis page
+layout_player_page = html.Div(children=[
     html.H1(children='Player Analysis'),
 
     dash_table.DataTable(
@@ -154,7 +178,7 @@ app.layout = html.Div(children=[
 
     dcc.Graph(
         id='player-heat-plot'
-    )
+    ),
 
 ])
 
@@ -162,6 +186,28 @@ app.layout = html.Div(children=[
 # Callbacks 
 # ------------------
 
+# Page Control Callouts 
+@app.callback(Output("page-content", "children"), [Input("url", "pathname")])
+def render_page_content(pathname):
+    if pathname == "/":
+        return html.P("This is the content of the home page!")
+    elif pathname == "/player-page":
+        return layout_player_page
+    elif pathname == "/team-page":
+        return layout_team_page
+    elif pathname == "/frame-page":
+        return layout_frame_page
+    # If the user tries to reach a different page, return a 404 message
+    return dbc.Jumbotron(
+        [
+            html.H1("404: Not found", className="text-danger"),
+            html.Hr(),
+            html.P(f"The pathname {pathname} was not recognised..."),
+        ]
+    )
+
+
+# Player Callbacks
 @app.callback(
     Output(component_id='player_name_output', component_property='children'),
     Output(component_id='player-shot-plot', component_property='figure'),
