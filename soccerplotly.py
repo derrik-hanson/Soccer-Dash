@@ -1,4 +1,6 @@
 import plotly.express as px
+import plotly.graph_objects as go
+import plotly.figure_factory as ff
 
 import pandas as pd
 import numpy as np
@@ -213,7 +215,6 @@ def plot_shots_xg(df, pens=False, title=None):
     s_color = [1 if i == 'Goal' else 0 for i in df['shot_outcome']]
     s_symbol = list(df['shot_outcome'].values)
     
-    
     fig = px.scatter(x=x, y=y,
                      size=s_size, 
                      color=s_color, color_continuous_scale='redor',
@@ -230,20 +231,68 @@ def plot_shots_xg(df, pens=False, title=None):
     
     return fig
 
-def plot_pass_arrow(fig, event, pass_color='LightSeaGreen'):
-    print("-- pass info --")
+def plot_event_heat_rect(df, title=None):
+    """
+    rectangle
+    """
+    # check for no event data
+    if len(df) == 0:
+        fig = px.scatter()
+        fig = draw_pitch_lines(fig)
+        fig.add_annotation(x=30, y=10,
+            text="No Events to Display",
+            showarrow=False,
+            yshift=0, 
+            font=dict(
+                size=18,
+                color='Grey')
+            )
+        return fig
+    
+    if title:
+        title_string=title
+    else: 
+        title_string='All Events'
+    
+    x = [loc[0] for loc in df['location'].dropna()]
+    y = [loc[1] for loc in df['location'].dropna()]
+    
+    fig = go.Figure(go.Histogram2d(x=x, y=y, 
+        autobinx=False,
+        xbins=dict(start=0, end=120, size=10),
+        autobiny=False,
+        ybins=dict(start=0, end=80, size=10),
+        #colorscale=[[0, 'rgb(12,51,131)'], [0.25, 'rgb(10,136,186)'], [0.5, 'rgb(242,211,56)'], [0.75, 'rgb(242,143,56)'], [1, 'rgb(217,30,30)']]
+    ))
+    
+    fig.update_layout(
+        title={
+            'text': title_string,
+            'font' :{'color' : 'white'}
+        })
+    # add pitch lines
+    fig = draw_pitch_lines(fig, below=False)
+    
+    return fig
+
+def plot_pass_arrow(fig, event, pass_color='LightSeaGreen', verbose=False):
+    
     start_loc = event['location']
-    print(f"start: {start_loc}")
-    end_loc = event['pass']['end_location']
-    print(f"end: {end_loc}")
-    height = event['pass']['height']
-    print(f"height: {height}")
+    end_loc = event['pass_end_location']
+    height = event['pass_height']
+
+    
+    if verbose:
+        print(f"start: {start_loc}")    
+        print(f"start: {start_loc}")
+        print(f"end: {end_loc}")
+        print(f"height: {height}")
 
     fig.add_annotation(
-        x=start_loc[0],  # arrows' head
-        y=start_loc[1],  # arrows' head
-        ax=end_loc[0],  # arrows' tail
-        ay=end_loc[1],  # arrows' tail
+        ax=start_loc[0],  # arrows' head
+        ay=start_loc[1],  # arrows' head
+        x=end_loc[0],  # arrows' tail
+        y=end_loc[1],  # arrows' tail
         xref='x',
         yref='y',
         axref='x',
@@ -256,4 +305,64 @@ def plot_pass_arrow(fig, event, pass_color='LightSeaGreen'):
         arrowcolor=pass_color
     )
     
+    return fig
+
+def plot_passes(df, title=None):
+    """
+    df: expects flattened sb event dataframe
+    """
+    # check for no event data
+    if len(df) == 0:
+        fig = px.scatter()
+        fig = draw_pitch_lines(fig)
+        fig.add_annotation(x=30, y=10,
+            text="No Events to Display",
+            showarrow=False,
+            yshift=0, 
+            font=dict(
+                size=18,
+                color='Grey')
+            )
+        return fig
+    
+    df['pass_outcome'] = df['pass_outcome'].fillna('Complete')
+    
+    req_cols = ['location', 'pass_outcome', 'pass_height']
+    df = df.loc[df[req_cols].dropna(how='any').index]
+
+    x = [loc[0] for loc in df['location'].values]
+    y = [loc[1] for loc in df['location'].values]
+    p_color = [oc for oc in df['pass_outcome']]
+    p_ht  = [ht for ht in df['pass_height']]
+    
+    
+    color_dict = {'Complete': 'LightSeaGreen',
+              'Incomplete': 'Yellow',
+              'Unknown': 'Gray',
+              'Pass Offside': 'Gray'}
+
+    # plot pass starting points    
+    fig = px.scatter(x=x, y=y, color=p_color, color_discrete_map=color_dict)
+    
+    fig.update_traces(marker=dict(size=3),
+                  selector=dict(mode='markers'))
+    
+    for index, row in df.iterrows():
+        arrow_color = color_dict[row['pass_outcome']]
+        #line_type = line_dict[row['pass_height']]
+        fig = plot_pass_arrow(fig, row, pass_color=arrow_color)
+    
+    # display adjustments 
+    if title:
+        title_string=title
+    else: 
+        title_string='All Passes'
+           
+    fig.update_layout(
+        title={
+            'text': title_string,
+            'font' :{'color' : 'white'}
+        })
+    
+    fig = draw_pitch_lines(fig)
     return fig

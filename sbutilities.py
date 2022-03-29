@@ -27,6 +27,7 @@ def join_events_split_to_frames(df_frames, events_split_dict):
         out_dict[e] = events_split_dict[str(e)].join(df_frames.set_index('event_uuid'),on='id')
         
     return out_dict
+
 # --------------
 # player tools
 # --------------
