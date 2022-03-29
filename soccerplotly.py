@@ -339,6 +339,7 @@ def plot_passes(df, title=None):
     color_dict = {'Complete': 'LightSeaGreen',
               'Incomplete': 'Yellow',
               'Unknown': 'Gray',
+              'Out' : 'Yellow',
               'Pass Offside': 'Gray'}
 
     # plot pass starting points    

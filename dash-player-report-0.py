@@ -54,6 +54,7 @@ def plot_player_heat(df, selected_player, selected_events=None, title=None):
     fig_heat = socly.plot_event_heat_rect(df_heats, title=title)
     return fig_heat
 
+# Player selection utility functions
 
 
 # ------------------
@@ -93,6 +94,7 @@ fig_team_shots = socly.plot_shots_xg(df_tm_shot, title=f"Shots - {selected_team_
 # ------------------
 italy_all_players = sbut.get_all_team_players_match(euro_final_events,'Italy')
 italy_player_opts = [{'label': p, 'value': p} for p in italy_all_players['player_name'].unique().tolist()]
+df_t = italy_all_players
 
 eng_all_players = sbut.get_all_team_players_match(euro_final_events,'England')
 eng_player_opts = eng_all_players['player_name'].unique().tolist()
@@ -122,12 +124,22 @@ app.layout = html.Div(children=[
     # -------------------------------
     html.H1(children='Player Analysis'),
 
-    dcc.Dropdown(
-        options = italy_player_opts,
-        value = 'Marco Verratti', 
-        placeholder = 'select a player',
-        id='player-dropdown'
+    dash_table.DataTable(
+        id='player-table',
+        columns=[{"name": i, "id": i} 
+                 for i in df_t.columns],
+        data=df_t.to_dict('records'),
+        style_cell=dict(textAlign='left')
     ),
+
+    html.P(id='table-out'),
+
+    # dcc.Dropdown(
+    #     options = italy_player_opts,
+    #     value = 'Marco Verratti', 
+    #     placeholder = 'select a player',
+    #     id='player-dropdown'
+    # ),
 
     html.Div(id='player_name_output'),
 
@@ -155,9 +167,15 @@ app.layout = html.Div(children=[
     Output(component_id='player-shot-plot', component_property='figure'),
     Output('player-heat-plot', 'figure'),
     Output('player-pass-plot', 'figure'),
-    Input(component_id='player-dropdown', component_property='value')
+    # Input(component_id='player-dropdown', component_property='value')
+    Input('player-table', 'active_cell')
 )
-def update_output_div(selected_player):
+def update_output_div(active_cell):
+    if active_cell:
+        selected_player = df_t.iloc[active_cell['row']][active_cell['column']]
+    else:
+        selected_player = 'Lorenzo Insigne'
+
     name_string = f'Selected Player: {selected_player}'
     
     print(selected_player)
@@ -172,6 +190,8 @@ def update_output_div(selected_player):
     heat_plot = plot_player_heat(df_all_evs, selected_player, title='All Player Events')
 
     return name_string, shot_plot, pass_plot, heat_plot
+
+
 
 # ------------------
 # Run App
