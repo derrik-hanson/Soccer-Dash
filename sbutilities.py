@@ -144,3 +144,24 @@ def extract_shot_details(df_a):
     df['technique'] = df.apply(lambda x: x['shot'].get('technique'), axis=1)
     df['outcome_name'] = df.apply(lambda x: x['shot'].get('outcome')['name'], axis=1)
     return df
+
+def get_pass_stats_basics(df_p):
+    """
+    expects df input returned by: 
+    sb.events(<matchid>, Flat=True, Split=True)
+    """
+
+    df_p['pass_outcome'].fillna('Complete', inplace=True)
+    pvt_player_pass = pd.pivot_table(df_p, values='index', index=['pass_height'],
+                        columns=['pass_outcome'], aggfunc='count')
+    
+    pvt_player_pass.fillna(0, inplace=True)
+    pvt_player_pass = pvt_player_pass.astype('int')
+
+    def get_percent(a, b):
+        return round((a / (a+b)),2)
+
+    pvt_player_pass['Completion_Percent'] = get_percent(pvt_player_pass['Complete'],pvt_player_pass['Incomplete'])
+    pvt_player_pass = pvt_player_pass.reset_index()
+
+    return pvt_player_pass

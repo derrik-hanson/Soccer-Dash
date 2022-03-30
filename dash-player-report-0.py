@@ -44,6 +44,10 @@ def plot_player_passes(df_e, selected_player):
 
     return fig_pass_arrows
 
+def make_pass_table_basic(df_e, selected_player):
+    df_pl_ev = get_player_events(df_e, selected_player, 'passes')
+    pass_table_basic =  sbut.get_pass_stats_basics(df_pl_ev)
+    return pass_table_basic
 
 def plot_player_heat(df, selected_player, selected_events=None, title=None):
     df_heats = df[df['player']==selected_player]
@@ -100,6 +104,7 @@ df_t = italy_all_players
 eng_all_players = sbut.get_all_team_players_match(euro_final_events,'England')
 eng_player_opts = eng_all_players['player_name'].unique().tolist()
 
+pass_table_basic = make_pass_table_basic(euro_combo_df, selected_player)
 # ------------------
 # -- Dash App 
 # ------------------
@@ -127,6 +132,11 @@ app.layout = html.Div([dcc.Location(id="url"), navbar, content])
 layout_frame_page = html.Div(children=[
     html.H1(children='A Single Frame from the Euro Final 2020'),
 
+    dbc.Row([
+            dbc.Col(html.Div(dcc.Graph(id='fz-graph',figure=fig_frame)), width=6),
+            dbc.Col(html.Div(dcc.Graph(id='fz-graph',figure=fig_frame)), width=6)
+        ]),
+
     dcc.Graph(
         id='fz-graph',
         figure=fig_frame
@@ -153,7 +163,7 @@ layout_player_page = html.Div(children=[
         columns=[{"name": i, "id": i} 
                  for i in df_t.columns],
         data=df_t.to_dict('records'),
-        style_cell=dict(textAlign='left')
+        style_cell={'textAlign':'left'}
     ),
 
     html.P(id='table-out'),
@@ -172,9 +182,37 @@ layout_player_page = html.Div(children=[
         figure=fig_player_shots
     ),
 
-    dcc.Graph(
-        id='player-pass-plot'
-    ),
+    dbc.Row([
+        dbc.Col(html.Div(dcc.Graph(id='player-pass-plot')), width=6),
+        dbc.Col(html.Div(
+            dash_table.DataTable(
+                id='pass-basics',
+                columns = [{"name": i, "id": i} 
+                         for i in pass_table_basic.columns],
+                data=pass_table_basic.to_dict('records'),
+                style_cell={'textAlign':'left',
+                    'minWidth': '100px', 'width': '150px', 'maxWidth': '150px',
+                    'fontSize' : 16, 
+                    'font-family': 'sans-serif',
+                    'border': '1px solid darkgrey'
+                    },
+                style_header={
+                    'backgroundColor': 'rgb(30, 30, 30)',
+                    'color': 'white'
+                },
+                style_data={
+                    'backgroundColor': 'rgb(50, 50, 50)', 
+                    'color': 'white'
+                },
+                style_as_list_view=True,
+            ),
+            style={'color':'#00361c','padding-top': 100, 
+            }
+            ),
+             width = {'size':4, 'offset':2})
+    ]),
+   
+
 
     dcc.Graph(
         id='player-heat-plot'
@@ -213,7 +251,8 @@ def render_page_content(pathname):
     Output(component_id='player-shot-plot', component_property='figure'),
     Output('player-heat-plot', 'figure'),
     Output('player-pass-plot', 'figure'),
-    # Input(component_id='player-dropdown', component_property='value')
+    Output('pass-basics', 'data'),
+    # ------
     Input('player-table', 'active_cell')
 )
 def update_output_div(active_cell):
@@ -232,10 +271,11 @@ def update_output_div(active_cell):
     shot_plot = plot_player_shots(df_e, selected_player)
 
     pass_plot = plot_player_passes(df_e, selected_player)
+    pass_basics_data = make_pass_table_basic(df_e, selected_player).to_dict('records')
 
     heat_plot = plot_player_heat(df_all_evs, selected_player, title='All Player Events')
 
-    return name_string, shot_plot, pass_plot, heat_plot
+    return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data
 
 
 
