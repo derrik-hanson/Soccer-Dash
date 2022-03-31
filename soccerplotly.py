@@ -385,12 +385,17 @@ def pass_length_bar_plot(df, title=None):
         title_string=title
     else: 
         title_string='Pass Lengths'
-           
+    
+    # layout Updates
     fig.update_layout(
         title={
             'text': title_string,
             'font' :{'color' : 'white'}
         })
+
+    fig.update_layout(
+    width = 700, 
+    height = 600)
 
     return fig
 
