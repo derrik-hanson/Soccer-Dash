@@ -119,6 +119,21 @@ def get_player_names_from_events(df_split):
     
     return starters + subs
 
+
+def expand_sb_location_col(df):
+    """
+    df: pandas dataframe with column 'location' and location values as list of form [int, int]
+    """
+    if len(df)>0:
+        locs_temp = df['location'].copy()
+        locs_temp = locs_temp.apply(pd.Series)
+        locs_temp.columns = ['loc_x', 'loc_y']
+        return pd.concat([df, locs_temp], axis=1)
+    else: 
+        df['loc_x'] = None
+        df['loc_y'] = None
+        return df
+
 # mostly unnecessary now
 def extract_shot_details(df_a):
     """
@@ -164,4 +179,82 @@ def get_pass_stats_basics(df_p):
     pvt_player_pass['Completion_Percent'] = get_percent(pvt_player_pass['Complete'],pvt_player_pass['Incomplete'])
     pvt_player_pass = pvt_player_pass.reset_index()
 
+    pvt_player_pass = pvt_player_pass.rename(
+    {'pass_height': 'Pass Height','Completion_Percent': 'Completion Percent'}, axis=1)
+
+    #pvt_player_pass['Success Rate'] = round(100*pvt_player_pass['Success Rate'],0)
+
     return pvt_player_pass
+
+
+
+#-----
+def make_dribble_stats_table(df):
+    """
+    df : pandas dataframe sb(split=True, flat=True)['dribbles']
+    """
+
+    def get_percent(a, b, disp=1):
+        """
+        a : number
+        b : number
+        disp : number. display results relateive to 1 or 100
+        decs : number. number of decimals to display
+        """
+        if (a+b) ==0: 
+            out = 0
+        else:
+            out = a / (a+b)
+            
+        if disp ==100:
+            out = out*100
+
+        return round(out, 2)
+    
+    # get df data 
+    dr_disp = df[['dribble_outcome','id', 'under_pressure']]
+    df_in = pd.pivot_table(dr_disp, values='id', index='under_pressure',
+                  columns=['dribble_outcome'], aggfunc='count')
+    
+    
+    # dribble_data_baseline
+    data_baseline = [[True, 0, 0, 0, 0],[False,0,0, 0, 0]]
+    dr_stats = pd.DataFrame(data_baseline)
+    dr_stats.columns = ['Under Pressure','Complete', 'Incomplete', 'Total', 'Success Rate']
+    dr_stats = dr_stats.set_index('Under Pressure', drop=True)
+
+    # add stats to table
+    if len(df_in)>0: 
+        if True in df_in.index:
+            if 'Complete' in list(df_in.columns):
+                dr_stats.at[True, 'Complete'] = df_in.loc[True, 'Complete']
+            if 'Incomplete' in list(df_in.columns):
+                dr_stats.at[True, 'Incomplete'] = df_in.loc[True, 'Incomplete']
+
+        if False in df_in.index:
+            if 'Complete' in list(df_in.columns):
+                dr_stats.at[False, 'Complete'] = df_in.loc[False, 'Complete']
+            if 'Incomplete' in list(df_in.columns):
+                dr_stats.at[False, 'Incomplete'] = df_in.loc[False, 'Incomplete']
+
+    # update success rate column
+    dr_stats['Total'] = dr_stats['Complete'] + dr_stats['Incomplete']
+    
+    # add totals row
+    totals = pd.DataFrame([[dr_stats['Complete'].sum(), dr_stats['Incomplete'].sum(), dr_stats['Total'].sum(), 0]])
+    totals.columns = ['Complete','Incomplete','Total', 'Success Rate']
+    dr_stats = pd.concat([dr_stats, totals])
+    
+    dr_stats['Success Rate'] = dr_stats.apply(lambda row: get_percent(row['Complete'], row['Incomplete'], disp=100), axis=1)
+    
+    # update with 'totals' index name
+    dr_stats.index = dr_stats.index.astype('str')
+    dr_stats = dr_stats.rename({'0':'Totals'}, axis='index')
+    
+    # reorder columns
+    dr_stats = dr_stats[['Total','Success Rate', 'Complete', 'Incomplete']]
+
+    dr_stats = dr_stats.reset_index()
+    dr_stats = dr_stats.rename({'index':'Under Pressure'}, axis=1)
+    
+    return dr_stats

@@ -49,6 +49,21 @@ def make_pass_table_basic(df_e, selected_player):
     pass_table_basic =  sbut.get_pass_stats_basics(df_pl_ev)
     return pass_table_basic
 
+def make_pass_length_bars(df_e, selected_player):
+    df_pl_ev = get_player_events(df_e, selected_player, 'passes')
+    fig_pass_lengths = socly.pass_length_bar_plot(df_pl_ev)
+    return fig_pass_lengths
+
+def make_player_carries_plot(df_e, selected_player):
+    df_pl_ev = get_player_events(df_e, selected_player, 'dribbles')
+    fig_carry_locs = socly.plot_event_scatter_generic(df_pl_ev, title='Dribble Locations')
+    return fig_carry_locs
+
+def make_carry_table_basic(df_e, selected_player):
+    df_pl_ev = get_player_events(df_e, selected_player, 'dribbles')
+    carry_table_basic = sbut.make_dribble_stats_table(df_pl_ev)
+    return carry_table_basic
+
 def plot_player_heat(df, selected_player, selected_events=None, title=None):
     df_heats = df[df['player']==selected_player]
 
@@ -100,16 +115,19 @@ fig_team_shots = socly.plot_shots_xg(df_tm_shot, title=f"Shots - {selected_team_
 italy_all_players = sbut.get_all_team_players_match(euro_final_events,'Italy')
 italy_player_opts = [{'label': p, 'value': p} for p in italy_all_players['player_name'].unique().tolist()]
 df_t = italy_all_players
+df_t = df_t.rename({'player_name': 'Player', 'position_name': 'Position'}, axis=1)
 
 eng_all_players = sbut.get_all_team_players_match(euro_final_events,'England')
 eng_player_opts = eng_all_players['player_name'].unique().tolist()
 
 pass_table_basic = make_pass_table_basic(euro_combo_df, selected_player)
+
+carry_table_basic = make_carry_table_basic(euro_combo_df, selected_player)
 # ------------------
 # -- Dash App 
 # ------------------
 
-app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(external_stylesheets=[dbc.themes.DARKLY])
 
 navbar = dbc.NavbarSimple(
             children=[
@@ -155,6 +173,45 @@ layout_team_page = html.Div(children=[
 
 # -------------------------------
 # player analysis page
+# -------------------------------
+
+# Player UI Elements 
+player_events_defense = ['pressures','duels','ball_recoverys','blocks','interceptions', 'clearances']
+player_events_ball = ['passes', 'ball_receipts', 'carrys', 'dribbles']
+player_events_other = ['dispossesseds', 'miscontrols','dribbled_pasts', 'foul_wons']
+
+heat_checklist = html.Div(
+    [
+        html.H3("Select Events"),
+        dbc.Label("Offense"),
+        dbc.Checklist(
+            id="heat-select-ball",
+            options=[{"label": i, "value": i} for i in player_events_ball],
+            #value=player_events_ball[0:],
+            inline=False,
+        ),
+        dbc.Label("Defense"),
+        dbc.Checklist(
+            id="heat-select-defense",
+            options=[{"label": i, "value": i} for i in player_events_defense],
+            value=player_events_defense[0],
+            inline=False,
+        ),
+        dbc.Label("Other"),
+        dbc.Checklist(
+            id="heat-select-other",
+            options=[{"label": i, "value": i} for i in player_events_other],
+            #value=player_events_other[0:],
+            inline=False,
+        ),
+    ],
+    className="mb-4",
+)
+
+heat_controls = dbc.Card([heat_checklist], body=True,)
+
+# ------------------------
+# Player Layout
 layout_player_page = html.Div(children=[
     html.H1(children='Player Analysis'),
 
@@ -163,7 +220,21 @@ layout_player_page = html.Div(children=[
         columns=[{"name": i, "id": i} 
                  for i in df_t.columns],
         data=df_t.to_dict('records'),
-        style_cell={'textAlign':'left'}
+        style_cell={'textAlign':'left',
+            'minWidth': '100px', 'width': '150px', 'maxWidth': '150px',
+            'fontSize' : 16, 
+            'font-family': 'sans-serif',
+            'border': '1px solid darkgrey'
+            },
+        style_header={
+            'backgroundColor': 'rgb(30, 30, 30)',
+            'color': 'white'
+        },
+        style_data={
+            'backgroundColor': 'rgb(50, 50, 50)', 
+            'color': 'white'
+        },
+        style_as_list_view=True,
     ),
 
     html.P(id='table-out'),
@@ -177,10 +248,20 @@ layout_player_page = html.Div(children=[
 
     html.Div(id='player_name_output'),
 
+    # --------------------------------
+    # Player Passing
+    html.Hr(),
+    html.H1(children="Shooting Tendencies"),
+
     dcc.Graph(
         id='player-shot-plot',
         figure=fig_player_shots
     ),
+
+    # --------------------------------
+    # Player Passing
+    html.Hr(),
+    html.H1(children="Passing Tendencies"),
 
     dbc.Row([
         dbc.Col(html.Div(dcc.Graph(id='player-pass-plot')), width=6),
@@ -211,13 +292,56 @@ layout_player_page = html.Div(children=[
             ),
              width = {'size':4, 'offset':2})
     ]),
-   
 
+    dbc.Row([
+        dbc.Col(html.Div(dcc.Graph(id='pass-length-plot')), width=6)
+    ]),
 
-    dcc.Graph(
-        id='player-heat-plot'
-    ),
+    # --------------------------------
+    # Player Dribbles
+    html.Hr(),
+    html.H1(children="Ball Carry"),
 
+    dbc.Row([
+        dbc.Col(html.Div(dcc.Graph(id='player-carry-plot')), width=6),
+        dbc.Col(html.Div(
+            dash_table.DataTable(
+                id='carry-basics',
+                columns = [{"name": i, "id": i} 
+                         for i in carry_table_basic.columns],
+                data=carry_table_basic.to_dict('records'),
+                style_cell={'textAlign':'center',
+                    'minWidth': '100px', 'width': '150px', 'maxWidth': '150px',
+                    'fontSize' : 16, 
+                    'font-family': 'sans-serif',
+                    'border': '1px solid darkgrey'
+                    },
+                style_header={
+                    'backgroundColor': 'rgb(30, 30, 30)',
+                    'color': 'white'
+                },
+                style_data={
+                    'backgroundColor': 'rgb(50, 50, 50)', 
+                    'color': 'white'
+                },
+                style_as_list_view=True,
+            ),
+            style={'color':'#00361c','padding-top': 100, 
+            }
+            ),
+             width = {'size':5, 'offset':1})
+    ]),    
+    
+
+    # --------------------------------
+    # Player Events
+    html.Hr(),
+    html.H1(children="Activity Heatmap"),
+    dbc.Row([
+        dbc.Col(html.Div(dcc.Graph(id='player-heat-plot')), width = 8),
+        dbc.Col(html.Div(heat_controls),width=4),
+
+    ])
 ])
 
 # ------------------
@@ -252,6 +376,9 @@ def render_page_content(pathname):
     Output('player-heat-plot', 'figure'),
     Output('player-pass-plot', 'figure'),
     Output('pass-basics', 'data'),
+    Output('pass-length-plot', 'figure'),
+    Output('carry-basics', 'data'),
+    Output('player-carry-plot', 'figure'),
     # ------
     Input('player-table', 'active_cell')
 )
@@ -267,17 +394,35 @@ def update_output_div(active_cell):
     # source data
     df_e = euro_combo_df
 
-    # shot plot
+    # player shots
     shot_plot = plot_player_shots(df_e, selected_player)
 
+    # player passes
     pass_plot = plot_player_passes(df_e, selected_player)
     pass_basics_data = make_pass_table_basic(df_e, selected_player).to_dict('records')
+    pass_length_plot = make_pass_length_bars(df_e, selected_player)
 
+    # player carries
+    carry_plot = make_player_carries_plot(df_e, selected_player)
+    carry_basics_data = make_carry_table_basic(df_e, selected_player).to_dict('records')
+
+    # player event heatmap
     heat_plot = plot_player_heat(df_all_evs, selected_player, title='All Player Events')
 
-    return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data
+    return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data, pass_length_plot, carry_basics_data, carry_plot
 
-
+@app.callback(
+        Output('player-heat-plot', 'figure'),
+        # ------
+        Input('heat-select-ball', 'value'),
+        Input('heat-select-defense', 'value'),
+        Input('heat-select-other', 'value')
+)
+def update_player_heatmap(ball_evs, def_evs, other_evs):
+    selected_events = ball_evs + def_evs + other_evs
+    df_sel_evs = df_all_evs[df_all_evs['type'].isin(selected_events)]
+    heat_plot = plot_player_heat(df_sel_evs, selected_player, title='Selected Player Events')
+    return heat_plot_update
 
 # ------------------
 # Run App

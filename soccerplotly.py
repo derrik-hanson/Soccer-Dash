@@ -5,6 +5,7 @@ import plotly.figure_factory as ff
 import pandas as pd
 import numpy as np
 
+import sbutilities as sbut
 
 def draw_pitch_lines(fig, length=120, width=100, line_color="LightGrey", below=True):
     
@@ -366,4 +367,65 @@ def plot_passes(df, title=None):
         })
     
     fig = draw_pitch_lines(fig)
+    return fig
+
+
+def pass_length_bar_plot(df, title=None):
+    df['pass_outcome'] = df['pass_outcome'].fillna('Complete')
+
+    counts, bins = np.histogram(df['pass_length'], bins=range(0,100,5))
+    bins = 0.5 * (bins[:-1] + bins[1:])
+
+
+    fig = px.bar(df, x=bins, y=counts, labels={'x':'Pass Length (m)', 'y':'No. Passes'}, title="Pass Lengths")
+    fig.update_layout(paper_bgcolor="#112",
+                 plot_bgcolor="#112")
+
+    if title:
+        title_string=title
+    else: 
+        title_string='Pass Lengths'
+           
+    fig.update_layout(
+        title={
+            'text': title_string,
+            'font' :{'color' : 'white'}
+        })
+
+    return fig
+
+def plot_event_scatter_generic(df, title=None):
+    
+    # check for no event data
+    if len(df) == 0:
+        fig = px.scatter()
+        fig = draw_pitch_lines(fig)
+        fig.add_annotation(x=30, y=10,
+            text="No Events to Display",
+            showarrow=False,
+            yshift=0, 
+            font=dict(
+                size=18,
+                color='Grey')
+            )
+        return fig
+    
+    df = sbut.expand_sb_location_col(df)
+    
+    fig = px.scatter(df, x='loc_x', y='loc_y', color='dribble_outcome')
+    fig = draw_pitch_lines(fig)
+    
+    
+    # display adjustments 
+    if title:
+        title_string=title
+    else: 
+        title_string='Event Locations'
+           
+    fig.update_layout(
+        title={
+            'text': title_string,
+            'font' :{'color' : 'white'}
+        })
+    
     return fig
