@@ -7,7 +7,7 @@ import numpy as np
 
 import sbutilities as sbut
 
-def draw_pitch_lines(fig, length=120, width=100, line_color="LightGrey", below=True):
+def draw_pitch_lines(fig, length=120, width=80, line_color="LightGrey", below=True):
     
     lay_arg = 'below' if below else 'above'
         
@@ -33,8 +33,8 @@ def draw_pitch_lines(fig, length=120, width=100, line_color="LightGrey", below=T
       )
     # change background color outside plot area
     # ... and inside plot area
-    fig.update_layout(paper_bgcolor="#112",
-                     plot_bgcolor="#112")
+    fig.update_layout(paper_bgcolor="#1A1A1A",
+                     plot_bgcolor="#1A1A1A")
 
     # left penalty box
     fig.add_shape(type="rect",
@@ -378,8 +378,8 @@ def pass_length_bar_plot(df, title=None):
 
 
     fig = px.bar(df, x=bins, y=counts, labels={'x':'Pass Length (m)', 'y':'No. Passes'}, title="Pass Lengths")
-    fig.update_layout(paper_bgcolor="#112",
-                 plot_bgcolor="#112")
+    fig.update_layout(paper_bgcolor="#1A1A1A",
+                 plot_bgcolor="#1A1A1A") #'#112'
 
     if title:
         title_string=title

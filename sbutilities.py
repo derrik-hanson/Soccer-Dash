@@ -119,6 +119,76 @@ def get_player_names_from_events(df_split):
     
     return starters + subs
 
+def playingtime_from_match(df):
+    """
+    df: pandas DataFrame of kind
+    - df_sb = sb.events(match_id=match_id, split=False, flatten_attrs=True)
+    """
+    #--
+    match_id = df.iloc[0]['match_id']
+    #-- Starting lineups
+    team1 = df.loc[0]['team']
+    team1_lineup = [p['player']['name'] for p in df.loc[0]['tactics']['lineup']]
+
+    team2 = df.loc[1]['team']
+    team2_lineup = [p['player']['name'] for p in df.loc[1]['tactics']['lineup']]
+
+    team_dat = {
+        team1: team1_lineup,
+        team2: team2_lineup
+    }
+
+    player_times = dict()
+
+    for key, val in team_dat.items():
+        for p in val:
+            player_times[p] = {
+                'team': key,
+                'on':[0,0], 
+                'off': [np.nan,np.nan]
+            }
+
+    #-- Handle Sub Events
+    sub_events = df[df['type']=='Substitution']
+
+    sub_events = sub_events[['team','player','substitution_replacement','period','timestamp','minute','second']]
+    sub_events
+
+    for index,s in sub_events.iterrows():
+        off_player = s['player']
+        on_player = s['substitution_replacement']
+
+        player_times[off_player]['off'] = [s['minute'],s['second']] 
+        player_times[on_player] = {
+                'team': s['team'],
+                'on':[s['minute'],s['second']],
+                'off': [np.nan,np.nan]
+            }
+    
+    #-- End of Match 
+    half_ends = df[df['type']=='Half End']
+
+    # half_ends = half_ends[['period','timestamp','minute','second']]
+    end_match = half_ends.loc[half_ends['period']==2]
+    end_match = end_match.iloc[0]
+
+    for d in player_times.values():
+        if np.isnan(d['off'][0]) == True:
+            d['off'] = [end_match['minute'],end_match['second']]
+
+    #-- Calculate total time
+    for d in player_times.values():
+        d['total_time_sec'] = (d['off'][0]*60 + d['off'][1]) - (d['on'][0]*60 + d['on'][1]) 
+        # convert to decimal time 
+        d['total_time_dec'] = round(d['total_time_sec']/60,2)
+
+    # prepare dataframe
+    pre_df = []
+    for p in player_times.keys(): 
+        pre_df.append({'player_name':p, 'time_played_mins':player_times[p]['total_time_dec'],
+                       'team': player_times[p]['team'], 'match_id':match_id})
+        
+    return pd.DataFrame(pre_df)
 
 def expand_sb_location_col(df):
     """
