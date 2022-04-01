@@ -190,6 +190,141 @@ def playingtime_from_match(df):
         
     return pd.DataFrame(pre_df)
 
+def get_player_match_summary(player_name, m_id):
+    all_events = sb.events(match_id=m_id)
+    
+    # get match playing time dataframe
+    pt_df = sbut.playingtime_from_match(all_events)
+    
+    player_evs = all_events.loc[all_events['player']==player_name]
+    
+    #- All False mask, for error handling
+    all_false_mask = np.repeat(False, len(player_evs.index))
+    
+    #- shots
+    shots_mask = player_evs['type']=='Shot'
+    goal_mask = player_evs['shot_outcome'] == 'Goal'
+    #- passes
+    pass_mask = player_evs['type'] == 'Pass'
+    pass_comp_mask = np.logical_not(player_evs['pass_outcome'].notna())
+    pass_incomp_mask = player_evs['pass_outcome']=='Incomplete'
+    
+    try:
+        assist_mask = player_evs['pass_goal_assist']==True
+    except:
+        assist_mask = all_false_mask
+        
+    #- dribbles
+    carry_mask = player_evs['type']=='Carry'
+    dribble_mask = player_evs['type']=='Dribble'
+    dribble_comp_mask = player_evs['dribble_outcome']=='Complete'
+    
+    shot_cols = ['shot_body_part',
+                'shot_end_location',
+                'shot_first_time',
+                'shot_freeze_frame',
+                'shot_key_pass_id',
+                'shot_one_on_one',
+                'shot_outcome',
+                'shot_redirect',
+                'shot_statsbomb_xg',
+                'shot_technique',
+                'shot_type']
+    #- Shots 
+    goal_evs = player_evs[np.logical_and(shots_mask,goal_mask)]#[shot_cols]
+    shot_evs = player_evs[shots_mask]
+    # xG
+    total_xg = shot_evs['shot_statsbomb_xg'].sum()
+    non_goal_xg = player_evs[np.logical_and(shots_mask,np.logical_not(goal_mask))]['shot_statsbomb_xg'].sum()
+     
+
+    #- Passes
+    pass_evs = player_evs[pass_mask]
+    pass_comp_evs = player_evs[np.logical_and(pass_mask, pass_comp_mask)]
+    pass_incomp_evs = player_evs[pass_incomp_mask]
+    assist_evs = player_evs.loc[assist_mask]
+
+    
+    #- Dribbles
+    carry_evs = player_evs[carry_mask]
+    dribble_evs = player_evs[dribble_mask]
+    dribble_comp_evs = player_evs[dribble_comp_mask]
+
+    #---- Create Summary dict
+    metric_dfs = {'goals': goal_evs,
+                  'assists': assist_evs,
+                  'shots': shot_evs,
+                  'passes_attempted':pass_evs ,
+                  'passes_complete': pass_comp_evs,
+                  'passes_incomplete': pass_incomp_evs,
+                  'carrys': carry_evs,
+                  'dribbles': dribble_evs,
+                  'dribbles_complete': dribble_comp_evs
+                 }
+    
+    metrics = {k:len(v.index) for k,v in metric_dfs.items()}
+    
+
+    #----- Calculating Derived Metrics
+    metrics['pass_completion_percent'] = 0 if metrics['passes_attempted'] == 0 else \
+                                            metrics['passes_complete'] / metrics['passes_attempted']
+    metrics['goals_minus_xg'] = metrics['goals']- total_xg
+    metrics['goals_over_xg'] = metrics['goals']/total_xg if total_xg > 0 else 0
+    metrics['total_xg'] = total_xg
+    metrics['non-goal_xg'] = non_goal_xg
+    
+    
+    #----- Incorporate Playing Time 
+    t_played = metrics['playing_time'] = pt_df.loc[pt_df['player_name']==player_name]['time_played_mins'].item()
+    
+    metrics_90 = {str(f"{k}/90"):round(v/(t_played/90),2) for k,v in metrics.items()}
+    
+    #- Add player name
+    metrics['player_name'] = player_name
+    metrics_90['player_name'] = player_name
+    
+    metrics['match_id'] = m_id
+    metrics_90['match_id'] = m_id
+    
+    
+    #- Create final player summary dataframe
+    metrics_df = pd.DataFrame([metrics]).set_index('player_name')
+    metrics_90_df = pd.DataFrame([metrics_90]).set_index('player_name')
+    
+    plyr_sum_df = pd.concat([metrics_df, metrics_90_df], axis=1)
+    return plyr_sum_df
+    
+
+def make_team_match_summary(match_id, player_list=None, team_name=None, pretty_d=False):
+    """
+    match_id : int
+    player_list= None : list (optional)
+    team_name= None : str (optional. required if player list also provided)
+    pretty_d=False : bool (optional) round derived metrics for display
+    """
+    if player_list is None:
+        all_players = sbut.playingtime_from_match(df_L)
+        team_mask = all_players['team']==team_name
+        team_players = all_players[team_mask]
+        player_list = team_players['player_name'].values.tolist()
+
+    group_sum = []
+    for player in player_list:
+
+        use_cols = ['goals', 'total_xg','shots','assists', 'pass_completion_percent', 'carrys', 'dribbles_complete','playing_time']
+
+        player_sum = get_player_match_summary(player, match_id)[use_cols]
+        group_sum.append(player_sum)
+        df_team = pd.concat(group_sum)
+        
+        if pretty_d:
+            #-- 
+            # clean up display 
+            df_team['total_xg'] = round(df_team['total_xg'],3)
+            df_team['pass_completion_percent'] = round(df_team['pass_completion_percent'],2)
+    
+    return df_team
+
 def expand_sb_location_col(df):
     """
     df: pandas dataframe with column 'location' and location values as list of form [int, int]
