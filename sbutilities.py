@@ -1,7 +1,11 @@
 import json
 import pandas as pd
 import numpy as np
-import statsbombpy as sb
+from statsbombpy import sb
+
+#--------------------
+# Data Loading and Preprocessing
+#--------------------
 
 def get_local_360_file(mid):
     base_path = "/Users/Spade5/Downloads/three_sixty_data/"
@@ -27,6 +31,35 @@ def join_events_split_to_frames(df_frames, events_split_dict):
         out_dict[e] = events_split_dict[str(e)].join(df_frames.set_index('event_uuid'),on='id')
         
     return out_dict
+
+# UI selection 
+def get_comp_opts():
+    data_path = '/Users/Spade5/DSA/Projects/Soccer-Dash/comp_opts.csv'
+    return pd.read_csv(data_path)
+
+def get_seasons_from_comp(selected_comp_id):
+    all_comps = sb.competitions()
+    season_opts = all_comps[all_comps['competition_id']==selected_comp_id]
+    season_opts = season_opts[['competition_name','season_name','competition_gender','competition_youth','season_id']]
+    season_opts = season_opts.sort_values('season_name')
+    return season_opts
+
+def get_matches_from_season(selected_season_id, selected_comp_id):
+    match_opts = sb.matches(competition_id=selected_comp_id, season_id=selected_season_id)
+    match_opts = match_opts[['match_date','home_team','away_team', 'home_score', 'away_score','match_id']]
+    return match_opts
+
+def get_lineups_from_match(selected_match_id):
+    lineups = sb.lineups(match_id=selected_match_id)
+    teams = list(lineups.keys())
+    lineup_team_0 = lineups[teams[0]]
+    lineup_team_0['team'] = teams[0]
+    lineup_team_1 = lineups[teams[1]]
+    lineup_team_1['team'] = teams[1]
+    lineups = pd.concat([lineups[teams[0]],lineups[teams[1]]])
+    lineups = lineups[['team','player_name','player_nickname','jersey_number','country','player_id']]
+    return lineups
+
 
 # --------------
 # player tools
@@ -90,7 +123,6 @@ def get_starting_players(df, team):
 
     return pd.concat(p_hold).reset_index(drop=True)
 
-
 def get_all_team_players_match(df, team):
     """
     expects dataframe input of type returned by: 
@@ -98,7 +130,6 @@ def get_all_team_players_match(df, team):
     ---
     team: str
     """
-    
     starts = get_starting_players(df, team)
     subs = get_substitution_players(df, team)
     
@@ -325,18 +356,29 @@ def make_team_match_summary(match_id, player_list=None, team_name=None, pretty_d
     
     return df_team
 
-def expand_sb_location_col(df):
+def expand_sb_location_col(df, split_col='location'):
     """
     df: pandas dataframe with column 'location' and location values as list of form [int, int]
+    split_col - str : the column in df to split
     """
+
     if len(df)>0:
-        locs_temp = df['location'].copy()
-        locs_temp = locs_temp.apply(pd.Series)
-        locs_temp.columns = ['loc_x', 'loc_y']
-        return pd.concat([df, locs_temp], axis=1)
+        if split_col == 'location':
+            locs_temp = df['location'].copy()
+            locs_temp = locs_temp.apply(pd.Series)
+            locs_temp.columns = ['loc_x', 'loc_y']
+            return pd.concat([df, locs_temp], axis=1)
+        else: 
+            # can add validation later
+            # try: 
+            locs_temp = df[split_col].copy()
+            locs_temp = locs_temp.apply(pd.Series)
+            locs_temp.columns = [split_col + '_loc_x', split_col + '_loc_y']
+            return pd.concat([df, locs_temp], axis=1)
+
     else: 
-        df['loc_x'] = None
-        df['loc_y'] = None
+        df[:,'loc_x'] = None
+        df[:,'loc_y'] = None
         return df
 
 # mostly unnecessary now

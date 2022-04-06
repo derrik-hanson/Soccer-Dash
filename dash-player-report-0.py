@@ -81,7 +81,12 @@ def plot_player_heat(df, selected_player, selected_events=None, title=None):
 # -- Data 
 # ------------------
 
+#--------------------
+# data selection 
+comp_opts = sbut.get_comp_opts()
 
+
+#-----------------
 all_comps = sb.competitions()
 comps_360 = all_comps[all_comps['match_available_360'].apply(lambda x: isinstance(x, str))]
 df = comps_360
@@ -143,7 +148,13 @@ navbar = dbc.NavbarSimple(
 
 content = dbc.Container(id="page-content", className="pt-4")
 
-app.layout = html.Div([dcc.Location(id="url"), navbar, content])
+app.layout = html.Div([dcc.Location(id="url"), navbar, content,
+                       dcc.Store(id='selected-comp-id'),
+                       dcc.Store(id='selected-season-id'),
+                       dcc.Store(id='selected-match-id'),
+                       dcc.Store(id='selected-player-id'),
+                       dcc.Store(id='selected-team-name'),
+                       ])
 
 # -------------------------------
 # Team and Frame placeholder
@@ -169,12 +180,34 @@ layout_team_page = html.Div(children=[
         id='team-shot-graph',
         figure=fig_team_shots
     ),
+
+    html.Hr(),
+    html.H1(children="Regaining Possession"),
+
+    html.Hr(),
+    html.H1(children="Goal Plot / All Shots Plot - w/ xG slider"),
+
+    html.Hr(),
+    html.H1(children="Assist Heatmap"),
+    html.H1(children="Pass to shot Heatmap - w/ xG slider"),
+
+    html.Hr(),
+    html.H1(children="Passing Matrx / Passing Network Plot"),
+
+    html.Hr(),
+    html.H1(children="Possession Regained Heatmap"),
+
+    html.Hr(),
+    html.H1(children="Possession Termination Radar Plot"),
+
+
 ])
 
 # -------------------------------
 # player analysis page
 # -------------------------------
 
+# -------------------------------
 # Player UI Elements 
 player_events_defense = ['Pressure', 'Duel', 'Ball Recovery', 'Block', 'Interception', 'Clearance']
 player_events_ball = ['Shot','Pass', 'Ball Receipt*', 'Carry', 'Dribble']
@@ -210,48 +243,156 @@ heat_checklist = html.Div(
 
 heat_controls = dbc.Card([heat_checklist], body=True,)
 
+# Player Selection Elements
+select_table_comp = dbc.Row([
+        dbc.Col(
+            dbc.Card(html.Div([
+                dash_table.DataTable(
+                id='select-comp',
+                columns=[{"name": i, "id": i} 
+                         for i in comp_opts.columns],
+                data=comp_opts.to_dict('records'),
+                style_cell={'textAlign':'left',
+                    'minWidth': '100px', 'width': '150px', 'maxWidth': '220px',
+                    'fontSize' : 16, 
+                    'font-family': 'sans-serif',
+                    'border': '1px solid darkgrey'
+                    },
+                style_header={
+                    'backgroundColor': 'rgb(30, 30, 30)',
+                    'color': 'white'
+                },
+                style_data={
+                    'backgroundColor': 'rgb(50, 50, 50)', 
+                    'color': 'white'
+                },
+                style_as_list_view=True,
+            )], 
+            className="mb-4"
+            ),
+            body=True
+            ),
+        width=7),
+    ])
+
+select_table_season = dbc.Row([
+        dbc.Col(
+            dbc.Card(html.Div([
+                dash_table.DataTable(
+                id='select-season',
+                style_cell={'textAlign':'left',
+                    'minWidth': '100px', 'width': '150px', 'maxWidth': '220px',
+                    'fontSize' : 16, 
+                    'font-family': 'sans-serif',
+                    'border': '1px solid darkgrey'
+                    },
+                style_header={
+                    'backgroundColor': 'rgb(30, 30, 30)',
+                    'color': 'white'
+                },
+                style_data={
+                    'backgroundColor': 'rgb(50, 50, 50)', 
+                    'color': 'white'
+                },
+                style_as_list_view=True,
+            )], 
+            className="mb-4"
+            ),
+            body=True
+            ),
+        width=7),
+    ])
+
+select_table_match = dbc.Row([
+        dbc.Col(
+            dbc.Card(html.Div([
+                dash_table.DataTable(
+                id='select-match',
+                style_cell={'textAlign':'left',
+                    'minWidth': '100px', 'width': '150px', 'maxWidth': '220px',
+                    'fontSize' : 16, 
+                    'font-family': 'sans-serif',
+                    'border': '1px solid darkgrey'
+                    },
+                style_header={
+                    'backgroundColor': 'rgb(30, 30, 30)',
+                    'color': 'white'
+                },
+                style_data={
+                    'backgroundColor': 'rgb(50, 50, 50)', 
+                    'color': 'white'
+                },
+                style_as_list_view=True,
+            )], 
+            className="mb-4"
+            ),
+            body=True
+            ),
+        width=7),
+    ])
+
+select_table_player = dbc.Row([
+        dbc.Col(
+            dbc.Card(html.Div([
+                dash_table.DataTable(
+                id='select-player',
+                style_cell={'textAlign':'left',
+                    'minWidth': '100px', 'width': '150px', 'maxWidth': '220px',
+                    'fontSize' : 16, 
+                    'font-family': 'sans-serif',
+                    'border': '1px solid darkgrey'
+                    },
+                style_header={
+                    'backgroundColor': 'rgb(30, 30, 30)',
+                    'color': 'white'
+                },
+                style_data={
+                    'backgroundColor': 'rgb(50, 50, 50)', 
+                    'color': 'white'
+                },
+                style_as_list_view=True,
+            )], 
+            className="mb-4"
+            ),
+            body=True
+            ),
+        width=7),
+    ])
+
 # ------------------------
 # Player Layout
 layout_player_page = html.Div(children=[
     html.H1(children='Player Analysis'),
+    html.Hr(),
 
-    dbc.Card(html.Div([
-        dash_table.DataTable(
-        id='player-table',
-        columns=[{"name": i, "id": i} 
-                 for i in df_t.columns],
-        data=df_t.to_dict('records'),
-        style_cell={'textAlign':'left',
-            'minWidth': '100px', 'width': '150px', 'maxWidth': '150px',
-            'fontSize' : 16, 
-            'font-family': 'sans-serif',
-            'border': '1px solid darkgrey'
-            },
-        style_header={
-            'backgroundColor': 'rgb(30, 30, 30)',
-            'color': 'white'
-        },
-        style_data={
-            'backgroundColor': 'rgb(50, 50, 50)', 
-            'color': 'white'
-        },
-        style_as_list_view=True,
-    )], 
-    className="mb-4"
-    ),
-    body=True
-    ),
+    html.H3(children='Select competition'),
+    select_table_comp,
 
-    html.P(id='table-out'),
+    html.H3(children='Select Season'),
+    select_table_season,
 
-    # dcc.Dropdown(
-    #     options = italy_player_opts,
-    #     value = 'Marco Verratti', 
-    #     placeholder = 'select a player',
-    #     id='player-dropdown'
-    # ),
+    html.H3(children='Select Match'), 
+    select_table_match,
 
-    html.Div(id='player_name_output'),
+    html.H3(children='Select Player'),
+    select_table_player,
+
+    #html.H3(children='Select Team'),
+
+    html.Hr(),
+    html.Hr(),
+
+    dbc.Row([
+        dbc.Col(html.Div(html.P(id='table-out')), width=4),
+    ]),
+
+    dbc.Row([
+        dbc.Col(html.Div([
+            html.H3(children='selected player:'),
+            html.H1(id='player_name_output'),
+            ]),
+            width=7),
+    ]),
 
     # --------------------------------
     # Player Passing
@@ -381,7 +522,78 @@ def render_page_content(pathname):
     )
 
 
+# -------------------
 # Player Callbacks
+
+# User Selections
+@app.callback(
+    Output('selected-comp-id', 'value'),
+    Output('select-season','data'),
+    Output('select-season','columns'),
+    # ---
+    Input('select-comp','active_cell')
+    )
+def handle_comp_selection(selected_comp_cell):
+    if selected_comp_cell:
+        comp_row = comp_opts.iloc[selected_comp_cell['row']][selected_comp_cell['column']]
+        selected_comp_id = comp_row
+
+        print(f"selected_comp_id: {selected_comp_id}")
+        season_opts = sbut.get_seasons_from_comp(selected_comp_id)
+        season_opt_data = season_opts.to_dict('records')
+        season_opt_cols = [{"name": i, "id": i} for i in season_opts.columns]
+
+        return selected_comp_id, season_opt_data, season_opt_cols
+
+@app.callback(
+    Output('selected-season-id', 'value'),
+    Output('select-match','data'),
+    Output('select-match','columns'),
+    # ---
+    Input('select-season','active_cell'),
+    Input('selected-comp-id', 'value')
+    )
+def handle_season_selection(selected_season_cell, selected_comp_id):
+    print(f"data-check comp_id: {selected_comp_id}")
+    if selected_season_cell:
+        season_df = sbut.get_seasons_from_comp(int(selected_comp_id))
+        print(f"lenght of seasondf {len(season_df)}")
+        print(f"selected season row: {selected_season_cell['row']}")
+        print(f"selected season col: {selected_season_cell['column']}")
+
+        season_row = season_df.iloc[selected_season_cell['row']][selected_season_cell['column']]
+        selected_season_id = season_row
+
+        print(f"selected_season_id: {selected_season_id}")
+        match_opts = sbut.get_matches_from_season(selected_season_id, selected_comp_id)
+        match_opt_data = match_opts.to_dict('records')
+        match_opt_cols = [{"name": i, "id": i} for i in match_opts.columns]
+        return selected_season_id, match_opt_data, match_opt_cols
+
+@app.callback(
+    Output('selected-match-id', 'value'),  
+    Output('select-player','data'),
+    Output('select-player', 'columns'),
+    #--
+    Input('selected-season-id', 'value'),
+    Input('selected-comp-id', 'value'),
+    Input('select-match', 'active_cell'),
+    )
+def handle_match_selection(selected_season_id, selected_comp_id, selected_match_cell):
+    if selected_match_cell:  
+        print(f"match-selected_season: {selected_season_id}")
+        print(f"match-selected_comp: {selected_comp_id}")
+        matches_df = sbut.get_matches_from_season(selected_season_id, selected_comp_id)
+        selected_match_id = matches_df.iloc[selected_match_cell['row']][selected_match_cell['column']]
+        # could check if match id hasn't changed- to avoid refetching data
+        player_opts = sbut.get_lineups_from_match(selected_match_id)
+
+        player_opts_data = player_opts.to_dict('records')
+        player_opts_cols = [{"name": i, "id": i} for i in player_opts.columns]
+    
+        return selected_match_id, player_opts_data, player_opts_cols
+
+# Analysis 
 @app.callback(
     Output(component_id='player_name_output', component_property='children'),
     Output(component_id='player-shot-plot', component_property='figure'),
@@ -392,41 +604,47 @@ def render_page_content(pathname):
     Output('dribble-basics', 'data'),
     Output('player-dribble-plot', 'figure'),
     # ------
-    Input('player-table', 'active_cell'),
+    Input('selected-match-id', 'value'),
+    Input('select-player', 'active_cell'),
     Input('heat-select-ball', 'value'),
     Input('heat-select-defense', 'value'),
     Input('heat-select-other', 'value')
 )
-def update_output_div(active_cell, ball_evs, def_evs, other_evs):
+def update_output_div(selected_match_id, active_cell, ball_evs, def_evs, other_evs):
     if active_cell:
-        selected_player = df_t.iloc[active_cell['row']][active_cell['column']]
-    else:
-        selected_player = 'Lorenzo Insigne'
+        #selected_player = df_t.iloc[active_cell['row']][active_cell['column']]
+        
+        players_df = sbut.get_lineups_from_match(selected_match_id)
+        selected_player = players_df.iloc[active_cell['row']][active_cell['column']]
+        print(f"final selected player {selected_player}")
+        
+        name_string = f'{selected_player}'
+        
+        print(selected_player)
+        # source data
+        #df_e = euro_combo_df
+        df_e = sb.events(match_id=selected_match_id, split=True, flatten_attrs=True)
 
-    name_string = f'Selected Player: {selected_player}'
-    
-    print(selected_player)
-    # source data
-    df_e = euro_combo_df
 
-    # player shots
-    shot_plot = plot_player_shots(df_e, selected_player)
+        # player shots
+        shot_plot = plot_player_shots(df_e, selected_player)
 
-    # player passes
-    pass_plot = plot_player_passes(df_e, selected_player)
-    pass_basics_data = make_pass_table_basic(df_e, selected_player).to_dict('records')
-    pass_length_plot = make_pass_length_bars(df_e, selected_player)
+        # player passes
+        pass_plot = plot_player_passes(df_e, selected_player)
+        pass_basics_data = make_pass_table_basic(df_e, selected_player).to_dict('records')
+        pass_length_plot = make_pass_length_bars(df_e, selected_player)
 
-    # player dribbles
-    dribble_plot = make_player_dribble_plot(df_e, selected_player)
-    dribble_basics_data = make_dribble_table_basic(df_e, selected_player).to_dict('records')
+        # player dribbles
+        dribble_plot = make_player_dribble_plot(df_e, selected_player)
+        dribble_basics_data = make_dribble_table_basic(df_e, selected_player).to_dict('records')
 
-    # player event heatmap
-    #heat_plot = plot_player_heat(df_all_evs, selected_player, title='All Player Events')
-    selected_events = ball_evs + def_evs + other_evs
-    df_sel_evs = df_all_evs[df_all_evs['type'].isin(selected_events)]
-    heat_plot = plot_player_heat(df_sel_evs, selected_player, title='Selected Player Events')
-    return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data, pass_length_plot, dribble_basics_data, dribble_plot
+        # player event heatmap
+        #heat_plot = plot_player_heat(df_all_evs, selected_player, title='All Player Events')
+        selected_events = ball_evs + def_evs + other_evs
+        df_all_evs = sb.events(match_id=selected_match_id, split=False, flatten_attrs=True)
+        df_sel_evs = df_all_evs[df_all_evs['type'].isin(selected_events)]
+        heat_plot = plot_player_heat(df_sel_evs, selected_player, title='Selected Player Events')
+        return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data, pass_length_plot, dribble_basics_data, dribble_plot
 
 # @app.callback(
 #         Output('player-heat-plot', 'figure'),
