@@ -148,7 +148,10 @@ navbar = dbc.NavbarSimple(
 
 content = dbc.Container(id="page-content", className="pt-4")
 
-app.layout = html.Div([dcc.Location(id="url"), navbar, content,
+app.layout = html.Div([dcc.Location(id="url"), 
+                      navbar,
+                      content,
+                      # data storage 
                        dcc.Store(id='selected-comp-id'),
                        dcc.Store(id='selected-season-id'),
                        dcc.Store(id='selected-match-id'),
@@ -174,6 +177,7 @@ layout_frame_page = html.Div(children=[
 # -------------------------------
 # Team and Frame placeholder
 layout_team_page = html.Div(children=[
+
     html.H1(children='Team Analysis'),
 
     dcc.Graph(
@@ -199,8 +203,6 @@ layout_team_page = html.Div(children=[
 
     html.Hr(),
     html.H1(children="Possession Termination Radar Plot"),
-
-
 ])
 
 # -------------------------------
@@ -337,7 +339,7 @@ select_table_player = dbc.Row([
                 dash_table.DataTable(
                 id='select-player',
                 style_cell={'textAlign':'left',
-                    'minWidth': '100px', 'width': '150px', 'maxWidth': '220px',
+                    'minWidth': '100px', 'width': '150px', 'maxWidth': '270px',
                     'fontSize' : 16, 
                     'font-family': 'sans-serif',
                     'border': '1px solid darkgrey'
@@ -356,43 +358,50 @@ select_table_player = dbc.Row([
             ),
             body=True
             ),
-        width=7),
+        width=12),
     ])
 
-# ------------------------
-# Player Layout
-layout_player_page = html.Div(children=[
-    html.H1(children='Player Analysis'),
-    html.Hr(),
+# @app.callback(Output('tabs-content-props', 'children'),
+#               Input('player-tab', 'value'))
+# def render_player_tab_content(player_tab):
+#     if player_tab == 'tab-player-select':
+#         return html.Div([
+#             player_select_layout
+#         ])
+#     elif player_tab == 'tab-player-analysis':
+#         return html.Div([
+#             player_analysis_layout
+#         ])
 
-    html.H3(children='Select competition'),
-    select_table_comp,
+player_select_layout = html.Div(children=[
+            html.H1(children='Player Analysis'),
+            html.Hr(),
 
-    html.H3(children='Select Season'),
-    select_table_season,
+            html.H3(children='Select competition'),
+            select_table_comp,
 
-    html.H3(children='Select Match'), 
-    select_table_match,
+            html.H3(children='Select Season'),
+            select_table_season,
 
-    html.H3(children='Select Player'),
-    select_table_player,
+            html.H3(children='Select Match'), 
+            select_table_match,
 
-    #html.H3(children='Select Team'),
+            html.H3(children='Select Player'),
+            select_table_player,
 
-    html.Hr(),
-    html.Hr(),
+            #html.H3(children='Select Team'),
+        ])
 
-    dbc.Row([
-        dbc.Col(html.Div(html.P(id='table-out')), width=4),
-    ]),
-
-    dbc.Row([
+player_analysis_layout = html.Div(children=[dbc.Row([
         dbc.Col(html.Div([
             html.H3(children='selected player:'),
             html.H1(id='player_name_output'),
             ]),
             width=7),
-    ]),
+        ]),
+
+    html.Hr(),
+    html.Hr(),
 
     # --------------------------------
     # Player Passing
@@ -484,7 +493,6 @@ layout_player_page = html.Div(children=[
             ),
             width = {'size':5, 'offset':1}),
     ]),    
-    
 
     # --------------------------------
     # Player Events
@@ -495,6 +503,25 @@ layout_player_page = html.Div(children=[
         dbc.Col(html.Div(heat_controls),width=4),
 
     ])
+])
+# ------------------------
+# Player Layout
+player_tabs = html.Div([
+                dcc.Tabs(id="player-tab", value='tab-player-select', children=[
+                    dcc.Tab(label='Select', value='tab-player-select',
+                            children=[player_select_layout]),
+                    dcc.Tab(label='Analysis', value='tab-player-analysis',
+                            children=[player_analysis_layout]),
+                ], colors={
+                    "border": "white",
+                    "primary": "white",
+                    "background": "black"
+                }),
+                html.Div(id='tabs-content-props')
+            ])
+
+layout_player_page = html.Div(children=[
+    player_tabs,
 ])
 
 # ------------------
