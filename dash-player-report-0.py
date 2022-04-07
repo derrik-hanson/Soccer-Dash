@@ -15,9 +15,9 @@ import sbutilities as sbut
 import soccerplotly as socly
 
 
-# ------------------
+# ---------------------
 # -- Utility Functions 
-# ------------------
+# ---------------------
 
 
 # team utility functions
@@ -73,6 +73,12 @@ def plot_player_heat(df, selected_player, selected_events=None, title=None):
 
     fig_heat = socly.plot_event_heat_rect(df_heats, title=title)
     return fig_heat
+
+def make_player_match_summary(df, selected_player):
+    df_msum = sbut.get_player_match_summary(df, selected_player)
+    df_msum = df_msum[['goals', 'total_xg','shots','assists', 'pass_completion_percent', 'carrys', 'dribbles_complete','playing_time']]
+    df_msum.columns = [s.replace('_', ' ') for s in df_msum.columns]
+    return df_msum
 
 # Player selection utility functions
 
@@ -361,18 +367,6 @@ select_table_player = dbc.Row([
         width=12),
     ])
 
-# @app.callback(Output('tabs-content-props', 'children'),
-#               Input('player-tab', 'value'))
-# def render_player_tab_content(player_tab):
-#     if player_tab == 'tab-player-select':
-#         return html.Div([
-#             player_select_layout
-#         ])
-#     elif player_tab == 'tab-player-analysis':
-#         return html.Div([
-#             player_analysis_layout
-#         ])
-
 player_select_layout = html.Div(children=[
             html.H1(children='Player Analysis'),
             html.Hr(),
@@ -392,7 +386,8 @@ player_select_layout = html.Div(children=[
             #html.H3(children='Select Team'),
         ])
 
-player_analysis_layout = html.Div(children=[dbc.Row([
+player_analysis_layout = html.Div(children=[
+    dbc.Row([
         dbc.Col(html.Div([
             html.H3(children='selected player:'),
             html.H1(id='player_name_output'),
@@ -402,6 +397,39 @@ player_analysis_layout = html.Div(children=[dbc.Row([
 
     html.Hr(),
     html.Hr(),
+
+    html.H2(children="Player Match Summary "),
+    dbc.Row([
+        dbc.Col(dbc.Card(html.Div([
+            html.H3(children='Stats'),
+            dash_table.DataTable(
+                id='player-match-sumr-table',
+
+                style_cell={'textAlign':'left',
+                    'minWidth': '30px', 'width': '100px', 'maxWidth': '150px',
+                    'fontSize' : 14, 
+                    'font-family': 'sans-serif',
+                    'border': '1px solid darkgrey'
+                    },
+                style_header={
+                    'backgroundColor': 'rgb(30, 30, 30)',
+                    'color': 'white'
+                },
+                style_data={
+                    'backgroundColor': 'rgb(50, 50, 50)', 
+                    'color': 'white'
+                },
+                style_as_list_view=True,
+            )],
+            style={'color':'white','padding-top': 15, },
+            #className='mb-4'
+            ),        
+            body=True
+            ),
+            width = {'size':11, 'offset':0}),
+
+    ]),
+
 
     # --------------------------------
     # Player Passing
@@ -494,7 +522,7 @@ player_analysis_layout = html.Div(children=[dbc.Row([
             width = {'size':5, 'offset':1}),
     ]),    
 
-    # --------------------------------
+    # --------------
     # Player Events
     html.Hr(),
     html.H1(children="Activity Heatmap"),
@@ -504,8 +532,9 @@ player_analysis_layout = html.Div(children=[dbc.Row([
 
     ])
 ])
+
 # ------------------------
-# Player Layout
+# Player Page Layout
 player_tabs = html.Div([
                 dcc.Tabs(id="player-tab", value='tab-player-select', children=[
                     dcc.Tab(label='Select', value='tab-player-select',
@@ -548,8 +577,7 @@ def render_page_content(pathname):
         ]
     )
 
-
-# -------------------
+# --------------------
 # Player Callbacks
 
 # User Selections
@@ -630,6 +658,8 @@ def handle_match_selection(selected_season_id, selected_comp_id, selected_match_
     Output('pass-length-plot', 'figure'),
     Output('dribble-basics', 'data'),
     Output('player-dribble-plot', 'figure'),
+    Output('player-match-sumr-table', 'columns'),
+    Output('player-match-sumr-table', 'data'),
     # ------
     Input('selected-match-id', 'value'),
     Input('select-player', 'active_cell'),
@@ -637,7 +667,7 @@ def handle_match_selection(selected_season_id, selected_comp_id, selected_match_
     Input('heat-select-defense', 'value'),
     Input('heat-select-other', 'value')
 )
-def update_output_div(selected_match_id, active_cell, ball_evs, def_evs, other_evs):
+def update_player_analysis_div(selected_match_id, active_cell, ball_evs, def_evs, other_evs):
     if active_cell:
         #selected_player = df_t.iloc[active_cell['row']][active_cell['column']]
         
@@ -652,7 +682,6 @@ def update_output_div(selected_match_id, active_cell, ball_evs, def_evs, other_e
         #df_e = euro_combo_df
         df_e = sb.events(match_id=selected_match_id, split=True, flatten_attrs=True)
 
-
         # player shots
         shot_plot = plot_player_shots(df_e, selected_player)
 
@@ -665,26 +694,19 @@ def update_output_div(selected_match_id, active_cell, ball_evs, def_evs, other_e
         dribble_plot = make_player_dribble_plot(df_e, selected_player)
         dribble_basics_data = make_dribble_table_basic(df_e, selected_player).to_dict('records')
 
-        # player event heatmap
-        #heat_plot = plot_player_heat(df_all_evs, selected_player, title='All Player Events')
-        selected_events = ball_evs + def_evs + other_evs
+        # -------------
+        # Viz using all events dataframe
         df_all_evs = sb.events(match_id=selected_match_id, split=False, flatten_attrs=True)
+        
+        player_match_summary = make_player_match_summary(df_all_evs, selected_player)
+        psum_data = player_match_summary.to_dict('records')
+        psum_cols = [{"name": i, "id": i} for i in player_match_summary.columns]
+
+        # player event heatmap
+        selected_events = ball_evs + def_evs + other_evs
         df_sel_evs = df_all_evs[df_all_evs['type'].isin(selected_events)]
         heat_plot = plot_player_heat(df_sel_evs, selected_player, title='Selected Player Events')
-        return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data, pass_length_plot, dribble_basics_data, dribble_plot
-
-# @app.callback(
-#         Output('player-heat-plot', 'figure'),
-#         # ------
-#         Input('heat-select-ball', 'value'),
-#         Input('heat-select-defense', 'value'),
-#         Input('heat-select-other', 'value')
-# )
-# def update_player_heatmap(ball_evs, def_evs, other_evs):
-#     selected_events = ball_evs + def_evs + other_evs
-#     df_sel_evs = df_all_evs[df_all_evs['type'].isin(selected_events)]
-#     heat_plot = plot_player_heat(df_sel_evs, selected_player, title='Selected Player Events')
-#     return heat_plot_update
+        return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data, pass_length_plot, dribble_basics_data, dribble_plot, psum_cols, psum_data  
 
 # ------------------
 # Run App

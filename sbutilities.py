@@ -221,11 +221,15 @@ def playingtime_from_match(df):
         
     return pd.DataFrame(pre_df)
 
-def get_player_match_summary(player_name, m_id):
-    all_events = sb.events(match_id=m_id)
+def get_player_match_summary(df, player_name, m_id=None):
+    
+    # if m_id != None):
+    #     df = sb.events(match_id=m_id)
+
+    all_events = df
     
     # get match playing time dataframe
-    pt_df = sbut.playingtime_from_match(all_events)
+    pt_df = playingtime_from_match(all_events)
     
     player_evs = all_events.loc[all_events['player']==player_name]
     
