@@ -60,6 +60,10 @@ def get_lineups_from_match(selected_match_id):
     lineups = lineups[['team','player_name','player_nickname','jersey_number','country','player_id']]
     return lineups
 
+def get_teams_from_match(m_id):
+    lineups = sb.lineups(match_id=selected_match_id)
+    teams = list(lineups.keys())
+    return teams
 
 # --------------
 # player tools
@@ -365,24 +369,27 @@ def expand_sb_location_col(df, split_col='location'):
     df: pandas dataframe with column 'location' and location values as list of form [int, int]
     split_col - str : the column in df to split
     """
-
+    sb_pitch_y_dim = 80
     if len(df)>0:
         if split_col == 'location':
             locs_temp = df['location'].copy()
             locs_temp = locs_temp.apply(pd.Series)
-            locs_temp.columns = ['loc_x', 'loc_y']
+            locs_temp.columns = ['loc_x', 'loc_y_raw']
+            locs_temp['loc_y'] = sb_pitch_y_dim - locs_temp['loc_y_raw']
             return pd.concat([df, locs_temp], axis=1)
         else: 
             # can add validation later
             # try: 
             locs_temp = df[split_col].copy()
             locs_temp = locs_temp.apply(pd.Series)
-            locs_temp.columns = [split_col + '_loc_x', split_col + '_loc_y']
+            locs_temp.columns = [split_col + '_loc_x', split_col + '_loc_y_raw']
+            locs_temp[split_col + '_loc_y'] = sb_pitch_y_dim - locs_temp[split_col + '_loc_y_raw']
             return pd.concat([df, locs_temp], axis=1)
 
     else: 
         df[:,'loc_x'] = None
         df[:,'loc_y'] = None
+        df[:, 'loc_y_raw'] = None
         return df
 
 # mostly unnecessary now
@@ -427,7 +434,15 @@ def get_pass_stats_basics(df_p):
     def get_percent(a, b):
         return round((a / (a+b)),2)
 
-    pvt_player_pass['Completion_Percent'] = get_percent(pvt_player_pass['Complete'],pvt_player_pass['Incomplete'])
+    if set(['Complete','Incomplete']).issubset(pvt_player_pass.columns.tolist()):
+        pvt_player_pass['Completion_Percent'] = get_percent(pvt_player_pass['Complete'],pvt_player_pass['Incomplete'])
+    elif 'Incomplete' not in pvt_player_pass.columns.tolist():
+        pvt_player_pass['Completion_Percent'] = 1.00
+    elif 'Complete' not in pvt_player_pass.columns.tolist():
+        pvt_player_pass['Completion_Percent'] = 0.00
+    else:
+        pvt_player_pass['Completion_Percent'] = 0.00
+
     pvt_player_pass = pvt_player_pass.reset_index()
 
     pvt_player_pass = pvt_player_pass.rename(
@@ -509,3 +524,9 @@ def make_dribble_stats_table(df):
     dr_stats = dr_stats.rename({'index':'Under Pressure'}, axis=1)
     
     return dr_stats
+
+
+#-------------------
+# Team Functions 
+#-------------------
+

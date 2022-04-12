@@ -156,6 +156,8 @@ def draw_pitch_lines(fig, length=120, width=80, line_color="LightGrey", below=Tr
 
 def plot_frame(row, table=False, viz_ar=False):
     
+
+
     # check for missing frame 
     if row['freeze_frame'] is np.nan:
         fig = px.scatter()
@@ -172,7 +174,7 @@ def plot_frame(row, table=False, viz_ar=False):
     
     frame = pd.DataFrame(row['freeze_frame'])
     frame['x'] = frame.apply(lambda row: row['location'][0], axis=1)
-    frame['y'] = frame.apply(lambda row: row['location'][1], axis=1)
+    frame['y'] = frame.apply(lambda row: 80 - row['location'][1], axis=1)
     if table:
         display(frame)
     
@@ -186,14 +188,7 @@ def plot_frame(row, table=False, viz_ar=False):
 
 def plot_shots_xg(df, pens=False, title=None):
     
-    if not pens: 
-        df = df[df['shot_type']!= 'Penalty']
-        
-    if title:
-        title_string=title
-    else: 
-        title_string="Shots - xG"
-        
+   
     # check for no shot data 
     if len(df) == 0:
         fig = px.scatter()
@@ -208,9 +203,21 @@ def plot_shots_xg(df, pens=False, title=None):
             )
         return fig
     
+    if not set(['loc_x', 'loc_y']).issubset(df.columns.tolist()):
+        df = sbut.expand_sb_location_col(df)
+
+    if not pens: 
+        df = df[df['shot_type']!= 'Penalty']
+        
+    if title:
+        title_string=title
+    else: 
+        title_string="Shots - xG"
+     
+
     # proceeding with shot processing
-    x = [loc[0] for loc in df['location'].values]
-    y = [loc[1] for loc in df['location'].values]
+    x = df['loc_x'].tolist()
+    y = df['loc_y'].tolist()
     
     s_size = 30*df['shot_statsbomb_xg'].values
     s_color = [1 if i == 'Goal' else 0 for i in df['shot_outcome']]
@@ -254,9 +261,16 @@ def plot_event_heat_rect(df, title=None):
         title_string=title
     else: 
         title_string='All Events'
+
+    # drop rows with no location info
+    df = df[df['location'].notna()]
     
-    x = [loc[0] for loc in df['location'].dropna()]
-    y = [loc[1] for loc in df['location'].dropna()]
+    # check if location column needs corrected
+    if not set(['loc_x', 'loc_y']).issubset(df.columns.tolist()):
+        df = sbut.expand_sb_location_col(df)
+
+    x = df['loc_x'].tolist()
+    y = df['loc_y'].tolist()
     
     fig = go.Figure(go.Histogram2d(x=x, y=y, 
         autobinx=False,
@@ -278,8 +292,10 @@ def plot_event_heat_rect(df, title=None):
 
 def plot_pass_arrow(fig, event, pass_color='LightSeaGreen', verbose=False):
     
-    start_loc = event['location']
-    end_loc = event['pass_end_location']
+    start_loc_x = event['loc_x']
+    start_loc_y = event['loc_y']
+    end_loc_x = event['pass_end_location_loc_x']
+    end_loc_y = event['pass_end_location_loc_y']
     height = event['pass_height']
 
     
@@ -290,10 +306,10 @@ def plot_pass_arrow(fig, event, pass_color='LightSeaGreen', verbose=False):
         print(f"height: {height}")
 
     fig.add_annotation(
-        ax=start_loc[0],  # arrows' head
-        ay=start_loc[1],  # arrows' head
-        x=end_loc[0],  # arrows' tail
-        y=end_loc[1],  # arrows' tail
+        ax=start_loc_x,  # arrows' head
+        ay=start_loc_y,  # arrows' head
+        x=end_loc_x,  # arrows' tail
+        y=end_loc_y,  # arrows' tail
         xref='x',
         yref='y',
         axref='x',
@@ -330,7 +346,7 @@ def plot_passes(df, title=None):
     
     req_cols = ['location', 'pass_outcome', 'pass_height']
     df = df.loc[df[req_cols].dropna(how='any').index]
-
+    
     x = [loc[0] for loc in df['location'].values]
     y = [loc[1] for loc in df['location'].values]
     p_color = [oc for oc in df['pass_outcome']]
@@ -344,7 +360,15 @@ def plot_passes(df, title=None):
               'Pass Offside': 'Gray'}
 
     # plot pass starting points    
-    fig = px.scatter(x=x, y=y, color=p_color, color_discrete_map=color_dict)
+    #fig = px.scatter(x=x, y=y, color=p_color, color_discrete_map=color_dict)
+
+    if not set(['loc_x', 'loc_y']).issubset(df.columns.tolist()):
+        df = sbut.expand_sb_location_col(df)
+    if not set(['pass_end_location_loc_x', 'pass_end_location_loc_y']).issubset(df.columns.tolist()):
+        df = sbut.expand_sb_location_col(df, 'pass_end_location')
+    
+
+    fig = px.scatter(df, x='loc_x', y='loc_y', color='pass_outcome', color_discrete_map=color_dict)
     
     fig.update_traces(marker=dict(size=3),
                   selector=dict(mode='markers'))
@@ -368,6 +392,7 @@ def plot_passes(df, title=None):
     
     fig = draw_pitch_lines(fig)
     return fig
+
 
 
 def pass_length_bar_plot(df, title=None):
@@ -415,7 +440,9 @@ def plot_event_scatter_generic(df, title=None):
             )
         return fig
     
-    df = sbut.expand_sb_location_col(df)
+    # correct y location and expand location into 2 columns 
+    if not set(['loc_x', 'loc_y']).issubset(df.columns.tolist()):
+        df = sbut.expand_sb_location_col(df)
     
     fig = px.scatter(df, x='loc_x', y='loc_y', color='dribble_outcome')
     fig = draw_pitch_lines(fig)
