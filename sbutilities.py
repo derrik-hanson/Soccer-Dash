@@ -225,7 +225,7 @@ def playingtime_from_match(df):
         
     return pd.DataFrame(pre_df)
 
-def get_player_match_summary(df, player_name, m_id=None):
+def get_player_match_summary(df, player_name, m_id=None, pretty=True):
     
     # if m_id != None):
     #     df = sb.events(match_id=m_id)
@@ -331,6 +331,11 @@ def get_player_match_summary(df, player_name, m_id=None):
     metrics_90_df = pd.DataFrame([metrics_90]).set_index('player_name')
     
     plyr_sum_df = pd.concat([metrics_df, metrics_90_df], axis=1)
+
+    if pretty:
+        plyr_sum_df['total_xg'] = plyr_sum_df['total_xg'].apply(lambda x: round(x,3))
+        plyr_sum_df['pass_completion_percent'] = plyr_sum_df['pass_completion_percent'].apply(lambda x: round(x,3))
+
     return plyr_sum_df
     
 
@@ -417,6 +422,38 @@ def extract_shot_details(df_a):
     df['technique'] = df.apply(lambda x: x['shot'].get('technique'), axis=1)
     df['outcome_name'] = df.apply(lambda x: x['shot'].get('outcome')['name'], axis=1)
     return df
+
+def get_shot_stats(df, split=True, pretty=True):
+    """
+    df : pandas Dataframe like sb.events(match_id=<>, split=True, flatten_attrs=True)['shots']
+    """
+    # Masks 
+    goal_mask = df['shot_outcome'] == 'Goal'
+    non_penalty_mask = df['shot_type'] != 'Penalty'
+    # add no pens mask 
+    
+    # ---- 
+    avg_xg = df['shot_statsbomb_xg'].mean()
+    num_goals = len(df[np.logical_and(goal_mask, non_penalty_mask)])
+    num_shots = len(df['index'])
+    
+    df_out = pd.DataFrame([[num_goals, avg_xg,  num_shots]])
+    df_out.columns = ['goals', 'average_xg', 'shots_taken']
+
+    # clean up for display
+    if pretty:
+        df_out['average_xg'] = df_out['average_xg'].apply(lambda x: round(x,3))
+    
+    return df_out
+
+def get_shot_details_table(df):
+    """
+    df : pandas Dataframe like sb.events(match_id=<>, split=True, flatten_attrs=True)['shots']
+    """
+    
+    shot_details_cols = ['shot_outcome','play_pattern','minute','period']
+    df_out = df[shot_details_cols]
+    return df_out
 
 def get_pass_stats_basics(df_p):
     """

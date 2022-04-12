@@ -26,6 +26,7 @@ def get_team_events(df_act, active_team, event_type):
     df_team_events = df_act[df_act['possession_team']==active_team]
     return df_team_events
 
+#-------------------------
 # player utility functions
 def get_player_events(df_act, active_player, event_type):
     df_act = df_act[event_type]
@@ -37,11 +38,21 @@ def plot_player_shots(df_e, selected_player):
     fig_player_ev = socly.plot_shots_xg(df_pl_ev, title=f"Shots - {selected_player}")
     return fig_player_ev
 
+def make_shot_stats_table(df_e, selected_player):
+    df_pl_ev = get_player_events(df_e, selected_player, 'shots')
+    shot_stat_summary = sbut.get_shot_stats(df_pl_ev)
+    shot_stat_summary.columns = [s.replace('_',' ') for s in shot_stat_summary.columns]
+    return shot_stat_summary
+
+def make_shot_details_table(df_e, selected_player):
+    df_pl_ev = get_player_events(df_e, selected_player, 'shots')
+    shot_details = sbut.get_shot_details_table(df_pl_ev)
+    shot_details.columns = [s.replace('_',' ') for s in shot_details.columns]
+    return shot_details
 
 def plot_player_passes(df_e, selected_player):
     df_pl_ev = get_player_events(df_e, selected_player, 'passes')
     fig_pass_arrows = socly.plot_passes(df_pl_ev)
-
     return fig_pass_arrows
 
 def make_pass_table_basic(df_e, selected_player):
@@ -143,8 +154,8 @@ app = dash.Dash(external_stylesheets=[dbc.themes.DARKLY])
 navbar = dbc.NavbarSimple(
             children=[
                 dbc.NavLink("Home", href="/", active="exact"),
-                dbc.NavLink("Player Study", href="/player-page", active="exact"),
-                dbc.NavLink("Team Study", href='/team-page', active="exact"),
+                dbc.NavLink("Player Match Report", href="/player-page", active="exact"),
+                dbc.NavLink("Team Analysis", href='/team-page', active="exact"),
                 dbc.NavLink("Frame ", href='/frame-page', active="exact"),
             ],
             brand="Socly Insight Engine",
@@ -436,10 +447,66 @@ player_analysis_layout = html.Div(children=[
     html.Hr(),
     html.H1(children="Shooting Tendencies"),
 
-    dcc.Graph(
-        id='player-shot-plot',
-        figure=fig_player_shots
-    ),
+    dbc.Row([
+        dbc.Col(html.Div(dcc.Graph(id='player-shot-plot',figure=fig_player_shots)),
+            width=6),
+        dbc.Col(html.Div([
+            dbc.Card(html.Div([
+            html.H3(children='Shot Stats'),
+            dash_table.DataTable(
+                id='shot-stats-table',
+                style_cell={'textAlign':'left',
+                    'minWidth': '30px', 'width': '100px', 'maxWidth': '150px',
+                    'fontSize' : 14, 
+                    'font-family': 'sans-serif',
+                    'border': '1px solid darkgrey'
+                    },
+                style_header={
+                    'backgroundColor': 'rgb(30, 30, 30)',
+                    'color': 'white'
+                },
+                style_data={
+                    'backgroundColor': 'rgb(50, 50, 50)', 
+                    'color': 'white'
+                },
+                style_as_list_view=True,
+            )],
+            style={'color':'white','padding-top': 15, },
+            #className='mb-4'
+            ),        
+            body=True
+            ),
+            
+            dbc.Card(html.Div([
+            html.H3(children='Shot Details'),
+            dash_table.DataTable(
+                id='shot-dets-table',
+                style_cell={'textAlign':'left',
+                    'minWidth': '30px', 'width': '100px', 'maxWidth': '150px',
+                    'fontSize' : 14, 
+                    'font-family': 'sans-serif',
+                    'border': '1px solid darkgrey'
+                    },
+                style_header={
+                    'backgroundColor': 'rgb(30, 30, 30)',
+                    'color': 'white'
+                },
+                style_data={
+                    'backgroundColor': 'rgb(50, 50, 50)', 
+                    'color': 'white'
+                },
+                style_as_list_view=True,
+            )],
+            style={'color':'white','padding-top': 15,},
+            #className='mb-4'
+            ),        
+            body=True,
+            style={'margin-top': 25},
+            ), 
+            ]),
+            width = {'size':5, 'offset':1}),
+        
+    ]),
 
     # --------------------------------
     # Player Passing
@@ -539,7 +606,7 @@ player_tabs = html.Div([
                 dcc.Tabs(id="player-tab", value='tab-player-select', children=[
                     dcc.Tab(label='Select', value='tab-player-select',
                             children=[player_select_layout]),
-                    dcc.Tab(label='Analysis', value='tab-player-analysis',
+                    dcc.Tab(label='Player Match Report', value='tab-player-analysis',
                             children=[player_analysis_layout]),
                 ], colors={
                     "border": "white",
@@ -660,6 +727,10 @@ def handle_match_selection(selected_season_id, selected_comp_id, selected_match_
     Output('player-dribble-plot', 'figure'),
     Output('player-match-sumr-table', 'columns'),
     Output('player-match-sumr-table', 'data'),
+    Output('shot-stats-table','columns'),
+    Output('shot-stats-table','data'),
+    Output('shot-dets-table','columns'),
+    Output('shot-dets-table','data'),
     # ------
     Input('selected-match-id', 'value'),
     Input('select-player', 'active_cell'),
@@ -684,6 +755,13 @@ def update_player_analysis_div(selected_match_id, active_cell, ball_evs, def_evs
 
         # player shots
         shot_plot = plot_player_shots(df_e, selected_player)
+        shot_stats = make_shot_stats_table(df_e, selected_player)
+        shot_details = make_shot_details_table(df_e, selected_player)
+
+        shot_sum_cols = [{"name": i, "id": i} for i in shot_stats.columns]
+        shot_sum_data = shot_stats.to_dict('records')
+        shot_dets_cols = [{"name": i, "id": i} for i in shot_details.columns]
+        shot_dets_data = shot_details.to_dict('records')
 
         # player passes
         pass_plot = plot_player_passes(df_e, selected_player)
@@ -706,7 +784,7 @@ def update_player_analysis_div(selected_match_id, active_cell, ball_evs, def_evs
         selected_events = ball_evs + def_evs + other_evs
         df_sel_evs = df_all_evs[df_all_evs['type'].isin(selected_events)]
         heat_plot = plot_player_heat(df_sel_evs, selected_player, title='Selected Player Events')
-        return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data, pass_length_plot, dribble_basics_data, dribble_plot, psum_cols, psum_data  
+        return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data, pass_length_plot, dribble_basics_data, dribble_plot, psum_cols, psum_data, shot_sum_cols, shot_sum_data, shot_dets_cols, shot_dets_data
 
 # ------------------
 # Run App

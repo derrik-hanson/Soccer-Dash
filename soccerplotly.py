@@ -357,7 +357,9 @@ def plot_passes(df, title=None):
               'Incomplete': 'Yellow',
               'Unknown': 'Gray',
               'Out' : 'Yellow',
-              'Pass Offside': 'Gray'}
+              'Pass Offside': 'Gray',
+              'Injury Clearance' : 'Gray'}
+
 
     # plot pass starting points    
     #fig = px.scatter(x=x, y=y, color=p_color, color_discrete_map=color_dict)
