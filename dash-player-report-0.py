@@ -185,28 +185,45 @@ manager_opts = pd.read_pickle(mgr_path)
 
 barca_manager_page_layout = html.Div(children=[
     html.H1(children='Barcelona Manager Analysis'),
-    html.H2(children='Passes Preceding Shots'),
+    html.H2(children='Shot Assists'),
     html.Hr(),
-    
-    dcc.Dropdown(
-       id='barca-manager-select',
-       options=[{'label': i, 'value': i} for i in manager_opts['manager_name'].to_list()],
-       value='Pep Guardiola'
-    ),
 
+    html.H3(children='Minimum xG Shot Value'),
     dcc.Dropdown(
        id='xg-min-select',
        options=[{'label': round(i,2), 'value': round(i,2)} for i in np.arange(0.05,1.0, 0.05)],
        value='0.10'
     ),
+    
+    html.H3(children='Managers to Compare'),
+    dbc.Row([
+        dbc.Col(html.Div(dcc.Dropdown(
+           id='barca-manager-select1',
+           options=[{'label': i, 'value': i} for i in manager_opts['manager_name'].to_list()],
+           value='Pep Guardiola'
+        ))),
+        dbc.Col(html.Div(dcc.Dropdown(
+           id='barca-manager-select2',
+           options=[{'label': i, 'value': i} for i in manager_opts['manager_name'].to_list()],
+           value='Pep Guardiola'
+        ))),
+    ]),
+
+
 
     html.Hr(),
     html.H2(children='Clusters Summary'),
-    html.Div(dcc.Graph(id='centers-fig1',figure=fig_frame)),
+    dbc.Row([
+        dbc.Col(html.Div(dcc.Graph(id='centers-fig1',figure=fig_frame)), width=6),
+        dbc.Col(html.Div(dcc.Graph(id='centers-fig2',figure=fig_frame)), width=6),
+    ]),
 
+    html.Hr(),
     html.H2(children='Clusters in Detail'),
-    html.Div(id='clusters-fig1'), 
-
+    dbc.Row([
+        dbc.Col(html.Div(id='clusters-fig1'), width=6),
+        dbc.Col(html.Div(id='clusters-fig2'), width=6),
+    ]),
 ])
 
 
@@ -825,12 +842,16 @@ def update_player_analysis_div(selected_match_id, active_cell, ball_evs, def_evs
 @app.callback(
     Output('centers-fig1', 'figure'),
     Output('clusters-fig1', 'children'),
+    Output('centers-fig2', 'figure'),
+    Output('clusters-fig2', 'children'),
     #---
-    Input('barca-manager-select', 'value'),
+    Input('barca-manager-select1', 'value'),
+    Input('barca-manager-select2', 'value'),
     Input('xg-min-select', 'value')
 )
-def update_manager_clusters(selected_manager, selected_xg_min):
-    df_freq, cl_figs, center_fig, df_centers = sbut.make_barca_manager_clusters(selected_manager, selected_xg_min)
+def update_manager_clusters(selected_manager1, selected_manager2, selected_xg_min):
+    df_freq, cl_figs, center_fig, df_centers = sbut.make_barca_manager_clusters(selected_manager1, float(selected_xg_min))
+    df_freq2, cl_figs2, center_fig2, df_centers2 = sbut.make_barca_manager_clusters(selected_manager2, float(selected_xg_min))
 
     cl_dcc_graphs = []
     for i, fig_i in enumerate(cl_figs):
@@ -839,7 +860,14 @@ def update_manager_clusters(selected_manager, selected_xg_min):
             figure=fig_i
         ))
 
-    return center_fig, cl_dcc_graphs
+    cl_dcc_graphs2 = []
+    for i, fig_i in enumerate(cl_figs2):
+        cl_dcc_graphs2.append(dcc.Graph(
+            id='graph-{}'.format(i),
+            figure=fig_i
+        ))
+
+    return center_fig, cl_dcc_graphs, center_fig2, cl_dcc_graphs2
 
 # ------------------
 # Run App
