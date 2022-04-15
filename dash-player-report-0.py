@@ -157,6 +157,7 @@ navbar = dbc.NavbarSimple(
                 dbc.NavLink("Player Match Report", href="/player-page", active="exact"),
                 dbc.NavLink("Team Analysis", href='/team-page', active="exact"),
                 dbc.NavLink("Frame ", href='/frame-page', active="exact"),
+                dbc.NavLink("Barca Managers", href='/barca-manager-page', active="exact"),
             ],
             brand="Socly Insight Engine",
             color="primary",
@@ -175,6 +176,39 @@ app.layout = html.Div([dcc.Location(id="url"),
                        dcc.Store(id='selected-player-id'),
                        dcc.Store(id='selected-team-name'),
                        ])
+
+# -------------------------------
+# Barca Managers Page
+mgr_path = '/Users/Spade5/DSA/Projects/Soccer-Dash/df_barca_manager_tenures.pkl'
+manager_opts = pd.read_pickle(mgr_path)
+
+
+barca_manager_page_layout = html.Div(children=[
+    html.H1(children='Barcelona Manager Analysis'),
+    html.H2(children='Passes Preceding Shots'),
+    html.Hr(),
+    
+    dcc.Dropdown(
+       id='barca-manager-select',
+       options=[{'label': i, 'value': i} for i in manager_opts['manager_name'].to_list()],
+       value='Pep Guardiola'
+    ),
+
+    dcc.Dropdown(
+       id='xg-min-select',
+       options=[{'label': round(i,2), 'value': round(i,2)} for i in np.arange(0.05,1.0, 0.05)],
+       value='0.10'
+    ),
+
+    html.Hr(),
+    html.H2(children='Clusters Summary'),
+    html.Div(dcc.Graph(id='centers-fig1',figure=fig_frame)),
+
+    html.H2(children='Clusters in Detail'),
+    html.Div(id='clusters-fig1'), 
+
+])
+
 
 # -------------------------------
 # Team and Frame placeholder
@@ -635,6 +669,8 @@ def render_page_content(pathname):
         return layout_team_page
     elif pathname == "/frame-page":
         return layout_frame_page
+    elif pathname == "/barca-manager-page":
+        return barca_manager_page_layout
     # If the user tries to reach a different page, return a 404 message
     return dbc.Jumbotron(
         [
@@ -785,6 +821,25 @@ def update_player_analysis_div(selected_match_id, active_cell, ball_evs, def_evs
         df_sel_evs = df_all_evs[df_all_evs['type'].isin(selected_events)]
         heat_plot = plot_player_heat(df_sel_evs, selected_player, title='Selected Player Events')
         return name_string, shot_plot, heat_plot, pass_plot, pass_basics_data, pass_length_plot, dribble_basics_data, dribble_plot, psum_cols, psum_data, shot_sum_cols, shot_sum_data, shot_dets_cols, shot_dets_data
+
+@app.callback(
+    Output('centers-fig1', 'figure'),
+    Output('clusters-fig1', 'children'),
+    #---
+    Input('barca-manager-select', 'value'),
+    Input('xg-min-select', 'value')
+)
+def update_manager_clusters(selected_manager, selected_xg_min):
+    df_freq, cl_figs, center_fig, df_centers = sbut.make_barca_manager_clusters(selected_manager, selected_xg_min)
+
+    cl_dcc_graphs = []
+    for i, fig_i in enumerate(cl_figs):
+        cl_dcc_graphs.append(dcc.Graph(
+            id='graph-{}'.format(i),
+            figure=fig_i
+        ))
+
+    return center_fig, cl_dcc_graphs
 
 # ------------------
 # Run App

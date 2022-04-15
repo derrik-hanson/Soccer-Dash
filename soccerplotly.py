@@ -290,13 +290,13 @@ def plot_event_heat_rect(df, title=None):
     
     return fig
 
-def plot_pass_arrow(fig, event, pass_color='LightSeaGreen', verbose=False):
+def plot_pass_arrow(fig, event, pass_color='LightSeaGreen', verbose=False, height=False):
     
     start_loc_x = event['loc_x']
     start_loc_y = event['loc_y']
     end_loc_x = event['pass_end_location_loc_x']
     end_loc_y = event['pass_end_location_loc_y']
-    height = event['pass_height']
+    pass_height = event['pass_height'] if height else None
 
     
     if verbose:
@@ -324,7 +324,7 @@ def plot_pass_arrow(fig, event, pass_color='LightSeaGreen', verbose=False):
     
     return fig
 
-def plot_passes(df, title=None):
+def plot_passes(df, title=None, show_outcome=True):
     """
     df: expects flattened sb event dataframe
     """
@@ -342,44 +342,62 @@ def plot_passes(df, title=None):
             )
         return fig
     
-    df['pass_outcome'] = df['pass_outcome'].fillna('Complete')
-    
-    req_cols = ['location', 'pass_outcome', 'pass_height']
-    df = df.loc[df[req_cols].dropna(how='any').index]
-    
-    x = [loc[0] for loc in df['location'].values]
-    y = [loc[1] for loc in df['location'].values]
-    p_color = [oc for oc in df['pass_outcome']]
-    p_ht  = [ht for ht in df['pass_height']]
-    
-    
-    color_dict = {'Complete': 'LightSeaGreen',
-              'Incomplete': 'Yellow',
-              'Unknown': 'Gray',
-              'Out' : 'Yellow',
-              'Pass Offside': 'Gray',
-              'Injury Clearance' : 'Gray'}
+    if not show_outcome:
+        if not set(['loc_x', 'loc_y']).issubset(df.columns.tolist()):
+            df = sbut.expand_sb_location_col(df)
+        if not set(['pass_end_location_loc_x', 'pass_end_location_loc_y']).issubset(df.columns.tolist()):
+            df = sbut.expand_sb_location_col(df, 'pass_end_location')
+        
+
+        fig = px.scatter(df, x='loc_x', y='loc_y')
+        
+        fig.update_traces(marker=dict(size=3),
+                      selector=dict(mode='markers'))
+        
+        for index, row in df.iterrows():
+            arrow_color = 'lightGrey'
+            #line_type = line_dict[row['pass_height']]
+            fig = plot_pass_arrow(fig, row, pass_color=arrow_color)
+        
+    else:
+        df['pass_outcome'] = df['pass_outcome'].fillna('Complete')
+        
+        req_cols = ['location', 'pass_outcome', 'pass_height']
+        df = df.loc[df[req_cols].dropna(how='any').index]
+        
+        x = [loc[0] for loc in df['location'].values]
+        y = [loc[1] for loc in df['location'].values]
+        p_color = [oc for oc in df['pass_outcome']]
+        p_ht  = [ht for ht in df['pass_height']]
+        
+        
+        color_dict = {'Complete': 'LightSeaGreen',
+                  'Incomplete': 'Yellow',
+                  'Unknown': 'Gray',
+                  'Out' : 'Yellow',
+                  'Pass Offside': 'Gray',
+                  'Injury Clearance' : 'Gray'}
 
 
-    # plot pass starting points    
-    #fig = px.scatter(x=x, y=y, color=p_color, color_discrete_map=color_dict)
+        # plot pass starting points    
+        #fig = px.scatter(x=x, y=y, color=p_color, color_discrete_map=color_dict)
 
-    if not set(['loc_x', 'loc_y']).issubset(df.columns.tolist()):
-        df = sbut.expand_sb_location_col(df)
-    if not set(['pass_end_location_loc_x', 'pass_end_location_loc_y']).issubset(df.columns.tolist()):
-        df = sbut.expand_sb_location_col(df, 'pass_end_location')
-    
+        if not set(['loc_x', 'loc_y']).issubset(df.columns.tolist()):
+            df = sbut.expand_sb_location_col(df)
+        if not set(['pass_end_location_loc_x', 'pass_end_location_loc_y']).issubset(df.columns.tolist()):
+            df = sbut.expand_sb_location_col(df, 'pass_end_location')
+        
 
-    fig = px.scatter(df, x='loc_x', y='loc_y', color='pass_outcome', color_discrete_map=color_dict)
-    
-    fig.update_traces(marker=dict(size=3),
-                  selector=dict(mode='markers'))
-    
-    for index, row in df.iterrows():
-        arrow_color = color_dict[row['pass_outcome']]
-        #line_type = line_dict[row['pass_height']]
-        fig = plot_pass_arrow(fig, row, pass_color=arrow_color)
-    
+        fig = px.scatter(df, x='loc_x', y='loc_y', color='pass_outcome', color_discrete_map=color_dict)
+        
+        fig.update_traces(marker=dict(size=3),
+                      selector=dict(mode='markers'))
+        
+        for index, row in df.iterrows():
+            arrow_color = color_dict[row['pass_outcome']]
+            #line_type = line_dict[row['pass_height']]
+            fig = plot_pass_arrow(fig, row, pass_color=arrow_color)
+        
     # display adjustments 
     if title:
         title_string=title
@@ -395,7 +413,94 @@ def plot_passes(df, title=None):
     fig = draw_pitch_lines(fig)
     return fig
 
+def plot_pass_clusters(df, title=None, show_outcome=True, color_range=["white", "red"]):
+    """
+    df: expects flattened sb event dataframe
+    """
+    # check for no event data
+    if len(df) == 0:
+        fig = px.scatter()
+        fig = draw_pitch_lines(fig)
+        fig.add_annotation(x=30, y=10,
+            text="No Events to Display",
+            showarrow=False,
+            yshift=0, 
+            font=dict(
+                size=18,
+                color='Grey')
+            )
+        return fig
+    
+    if not show_outcome:
+        if not set(['loc_x', 'loc_y']).issubset(df.columns.tolist()):
+            df = sbut.expand_sb_location_col(df)
+        if not set(['pass_end_location_loc_x', 'pass_end_location_loc_y']).issubset(df.columns.tolist()):
+            df = sbut.expand_sb_location_col(df, 'pass_end_location')
+        
 
+        fig = px.scatter(df, x='loc_x', y='loc_y', color='freq_pct',color_continuous_scale=color_range)
+        
+        fig.update_traces(marker=dict(size=6),
+                      selector=dict(mode='markers'))
+        
+        for index, row in df.iterrows():
+            arrow_color = 'lightGrey'
+            #line_type = line_dict[row['pass_height']]
+            fig = plot_pass_arrow(fig, row, pass_color=arrow_color)
+        
+    else:
+        df['pass_outcome'] = df['pass_outcome'].fillna('Complete')
+        
+        req_cols = ['location', 'pass_outcome', 'pass_height']
+        df = df.loc[df[req_cols].dropna(how='any').index]
+        
+        x = [loc[0] for loc in df['location'].values]
+        y = [loc[1] for loc in df['location'].values]
+        p_color = [oc for oc in df['pass_outcome']]
+        p_ht  = [ht for ht in df['pass_height']]
+        
+        
+        color_dict = {'Complete': 'LightSeaGreen',
+                  'Incomplete': 'Yellow',
+                  'Unknown': 'Gray',
+                  'Out' : 'Yellow',
+                  'Pass Offside': 'Gray',
+                  'Injury Clearance' : 'Gray'}
+
+
+        # plot pass starting points    
+        #fig = px.scatter(x=x, y=y, color=p_color, color_discrete_map=color_dict)
+
+        if not set(['loc_x', 'loc_y']).issubset(df.columns.tolist()):
+            df = sbut.expand_sb_location_col(df)
+        if not set(['pass_end_location_loc_x', 'pass_end_location_loc_y']).issubset(df.columns.tolist()):
+            df = sbut.expand_sb_location_col(df, 'pass_end_location')
+        
+
+        fig = px.scatter(df, x='loc_x', y='loc_y', color='pass_outcome', color_discrete_map=color_dict)
+        
+        fig.update_traces(marker=dict(size=3),
+                      selector=dict(mode='markers'))
+        
+        for index, row in df.iterrows():
+            arrow_color = color_dict[row['pass_outcome']]
+            #line_type = line_dict[row['pass_height']]
+            fig = plot_pass_arrow(fig, row, pass_color=arrow_color)
+        
+    # display adjustments 
+    if title:
+        title_string=title
+    else: 
+        title_string='All Passes'
+           
+    fig.update_layout(
+        title={
+            'text': title_string,
+            'font' :{'color' : 'white'}
+        })
+    
+    fig = draw_pitch_lines(fig)
+    return fig
 
 def pass_length_bar_plot(df, title=None):
     df['pass_outcome'] = df['pass_outcome'].fillna('Complete')

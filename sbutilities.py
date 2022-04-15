@@ -1,7 +1,18 @@
 import json
 import pandas as pd
 import numpy as np
+
 from statsbombpy import sb
+import soccerplotly as socly
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
+
+from scipy.cluster.vq import whiten, vq, kmeans
+from numpy import random
+from datetime import datetime
 
 #--------------------
 # Data Loading and Preprocessing
@@ -566,4 +577,85 @@ def make_dribble_stats_table(df):
 #-------------------
 # Team Functions 
 #-------------------
+
+
+#-------------------
+# Barca Manager Analysis
+#-------------------
+
+def make_barca_manager_clusters(selected_manager, selected_xg_min):
+    """
+    selected_manager : str
+    selected_xg_min : float
+    """
+    # load all assists to shots
+    p2s_path = '/Users/Spade5/DSA/Projects/Soccer-Dash/df_barca_p2s_final.pkl'
+    all_p2s = pd.read_pickle(p2s_path)
+
+    # apply maks for selected manager and minimum xg required
+    manager_mask = all_p2s['barca_manager']==selected_manager
+    xg_mask = all_p2s['shot_statsbomb_xg']>selected_xg_min
+    non_corner_mask = all_p2s['pass_type']!='Corner'
+
+    final_mask = manager_mask & xg_mask & non_corner_mask
+    df = all_p2s[final_mask]
+
+    #---
+    # which features to include
+    p2s_cluster_feats = ['loc_x', 'loc_y', 'pass_end_location_loc_x',
+                         'pass_end_location_loc_y', 'pass_angle']
+
+    feat_options = ['loc_x', 'loc_y', 'pass_end_location_loc_x',
+                    'pass_end_location_loc_y', 'pass_angle','pass_height', 'pass_length',  'shot_statsbomb_xg']
+    #---
+    df = df[p2s_cluster_feats]
+
+    # standardized 
+    df_w = pd.DataFrame(whiten(df))
+
+    # number of clusters to use
+    num_clusters = 15
+
+    # perform clustering and labeling
+    random.seed(0)
+    cluster_centers, distortion = kmeans(df_w, num_clusters)
+    df['cluster_labels'], distortion_list = vq(df_w, cluster_centers)
+
+    # scatter plot with cluster colors
+    px.scatter(df, x='loc_x', y='loc_y', color='cluster_labels')
+
+    # calculate frequency of occurrence for clusters
+    cl_freq = df.groupby('cluster_labels').count()[['loc_x']].sort_values(by='loc_x', ascending=False)
+    cl_freq.columns = ['freq']
+    cl_freq['freq_pct'] = round(cl_freq['freq']/cl_freq['freq'].sum(),3)
+
+    # make plot for each cluster of passes
+    cluster_pct = cl_freq['freq_pct'].tolist()
+    cluster_num = cl_freq.index.tolist()
+    #display(cl_freq)
+    
+    cl_figs = []
+    for i, cl in enumerate(cluster_num):
+        df_cl = df[df['cluster_labels']==cl]
+
+        fig = socly.plot_passes(df_cl, title=f"cluster {cl} - pct: {round(100*cluster_pct[i],1)}", show_outcome=False)
+        #fig.show()
+        cl_figs.append(fig)
+        
+    #----------
+    # Vizualizing Cluster Centers
+    #----------
+
+    df_std = df[p2s_cluster_feats].std()
+
+    de_whitened_centers = np.multiply(cluster_centers,df_std.to_numpy())
+    df_centers = pd.DataFrame(de_whitened_centers)
+    df_centers.columns = p2s_cluster_feats
+    #--
+    df_centers = df_centers.join(cl_freq)
+    #--
+    center_fig = socly.plot_pass_clusters(df_centers, title=f"Cluster Centers - {num_clusters}", show_outcome=False)
+    # ---
+
+    return cl_freq, cl_figs, center_fig, df_centers
 
