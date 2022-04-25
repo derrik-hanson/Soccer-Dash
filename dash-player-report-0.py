@@ -874,7 +874,7 @@ def update_manager_clusters(selected_manager1, selected_manager2, selected_xg_mi
 # ------------------
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 
 
