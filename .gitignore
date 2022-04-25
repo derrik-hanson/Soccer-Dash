@@ -1,4 +1,5 @@
-Untitled2.ipynb, 
+capstone-env/
+__pycache__/
 *.ipynb
 *.pyc
 *.md
@@ -6,4 +7,5 @@ Untitled2.ipynb,
 *.pages
 *.pyc
 .cache/**
-/Users/Spade5/DSA/Projects/Soccer-Dash/capstone-env/lib/python3.8/site-packages/**
+__pycache__/soccerplotly.cpython-38.pyc
+
