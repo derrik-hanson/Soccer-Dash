@@ -1,1 +1,9 @@
 Untitled2.ipynb, 
+*.ipynb
+*.pyc
+*.md
+*.pyc
+*.pages
+*.pyc
+.cache/**
+/Users/Spade5/DSA/Projects/Soccer-Dash/capstone-env/lib/python3.8/site-packages/**
