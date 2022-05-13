@@ -278,6 +278,10 @@ def plot_event_heat_rect(df, title=None):
         autobiny=False,
         ybins=dict(start=0, end=80, size=10),
         #colorscale=[[0, 'rgb(12,51,131)'], [0.25, 'rgb(10,136,186)'], [0.5, 'rgb(242,211,56)'], [0.75, 'rgb(242,143,56)'], [1, 'rgb(217,30,30)']]
+        colorbar=dict(
+            title='count',
+            titlefont={'color':'lightGrey'},
+            tickfont={'color':'lightGrey'})
     ))
     
     fig.update_layout(
@@ -321,6 +325,8 @@ def plot_pass_arrow(fig, event, pass_color='LightSeaGreen', verbose=False, heigh
         arrowwidth=1,
         arrowcolor=pass_color
     )
+
+    fig.update_layout(legend_font_color='lightGrey')
     
     return fig
 
@@ -390,8 +396,7 @@ def plot_passes(df, title=None, show_outcome=True):
 
         fig = px.scatter(df, x='loc_x', y='loc_y', color='pass_outcome', color_discrete_map=color_dict)
         
-        fig.update_traces(marker=dict(size=3),
-                      selector=dict(mode='markers'))
+        fig.update_traces(marker=dict(size=3), selector=dict(mode='markers'))
         
         for index, row in df.iterrows():
             arrow_color = color_dict[row['pass_outcome']]
@@ -510,8 +515,10 @@ def pass_length_bar_plot(df, title=None):
 
 
     fig = px.bar(df, x=bins, y=counts, labels={'x':'Pass Length (m)', 'y':'No. Passes'}, title="Pass Lengths")
-    fig.update_layout(paper_bgcolor="#1A1A1A",
-                 plot_bgcolor="#1A1A1A") #'#112'
+    fig.update_layout(paper_bgcolor="#1A1A1A", plot_bgcolor="#1A1A1A") #'#112'
+    fig.update_xaxes(title_font=dict(color='lightGrey'), tickfont=dict(color='lightGrey'))
+    fig.update_yaxes(title_font=dict(color='lightGrey'), tickfont=dict(color='lightGrey'))
+
 
     if title:
         title_string=title
@@ -565,6 +572,8 @@ def plot_event_scatter_generic(df, title=None):
         title={
             'text': title_string,
             'font' :{'color' : 'white'}
-        })
+        }, 
+        legend_title_font_color='lightGrey',
+        legend_font_color='lightGrey')
     
     return fig

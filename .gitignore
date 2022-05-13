@@ -7,5 +7,5 @@ __pycache__/
 *.pages
 *.pyc
 .cache/**
-__pycache__/soccerplotly.cpython-38.pyc
+
 

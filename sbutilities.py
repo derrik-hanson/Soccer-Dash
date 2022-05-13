@@ -483,18 +483,18 @@ def get_pass_stats_basics(df_p):
         return round((a / (a+b)),2)
 
     if set(['Complete','Incomplete']).issubset(pvt_player_pass.columns.tolist()):
-        pvt_player_pass['Completion_Percent'] = get_percent(pvt_player_pass['Complete'],pvt_player_pass['Incomplete'])
+        pvt_player_pass['Completion_Rate'] = get_percent(pvt_player_pass['Complete'],pvt_player_pass['Incomplete'])
     elif 'Incomplete' not in pvt_player_pass.columns.tolist():
-        pvt_player_pass['Completion_Percent'] = 1.00
+        pvt_player_pass['Completion_Rate'] = 1.00
     elif 'Complete' not in pvt_player_pass.columns.tolist():
-        pvt_player_pass['Completion_Percent'] = 0.00
+        pvt_player_pass['Completion_Rate'] = 0.00
     else:
         pvt_player_pass['Completion_Percent'] = 0.00
 
     pvt_player_pass = pvt_player_pass.reset_index()
 
     pvt_player_pass = pvt_player_pass.rename(
-    {'pass_height': 'Pass Height','Completion_Percent': 'Completion Percent'}, axis=1)
+    {'pass_height': 'Pass Height','Completion_Rate': 'Completion Rate'}, axis=1)
 
     #pvt_player_pass['Success Rate'] = round(100*pvt_player_pass['Success Rate'],0)
 
