@@ -1,4 +1,5 @@
 capstone-env/
+development_notebooks/
 __pycache__/
 *.ipynb
 *.pyc

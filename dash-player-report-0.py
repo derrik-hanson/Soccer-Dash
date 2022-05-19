@@ -150,6 +150,7 @@ dribble_table_basic = make_dribble_table_basic(euro_combo_df, selected_player)
 # ------------------
 
 app = dash.Dash(external_stylesheets=[dbc.themes.DARKLY])
+server = app.server
 
 navbar = dbc.NavbarSimple(
             children=[

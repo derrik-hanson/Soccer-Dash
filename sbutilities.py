@@ -45,8 +45,21 @@ def join_events_split_to_frames(df_frames, events_split_dict):
 
 # UI selection 
 def get_comp_opts():
-    data_path = '/Users/Spade5/DSA/Projects/Soccer-Dash/comp_opts.csv'
-    return pd.read_csv(data_path)
+
+    all_comps = sb.competitions()
+    comps_in = []
+    df_comp_opts = []
+
+    for idx, row in all_comps.iterrows():
+        if row['competition_id'] not in comps_in:
+            comps_in.append(row['competition_id'])
+            
+            df_comp_opts.append(row)
+            
+    df_comp_opts = pd.DataFrame(df_comp_opts)
+    df_comp_opts = df_comp_opts[['competition_name','country_name','competition_gender','competition_id']]
+
+    return df_comp_opts
 
 def get_seasons_from_comp(selected_comp_id):
     all_comps = sb.competitions()
