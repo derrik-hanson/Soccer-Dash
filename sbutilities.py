@@ -596,6 +596,17 @@ def make_dribble_stats_table(df):
 # Barca Manager Analysis
 #-------------------
 
+def get_barca_manager_opts():
+    # todo - update for heroku
+    # mgr_path = '/Users/Spade5/DSA/Projects/Soccer-Dash/df_barca_manager_tenures.pkl'
+    # manager_opts = pd.read_pickle(mgr_path)
+    d = {'manager_name': ['pep guardiola', 'frank rijkard', 'tito']}
+    manager_opts = pd.DataFrame(data=d)
+
+    return manager_opts
+
+
+
 def make_barca_manager_clusters(selected_manager, selected_xg_min):
     """
     selected_manager : str

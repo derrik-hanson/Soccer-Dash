@@ -126,9 +126,8 @@ app.layout = html.Div([dcc.Location(id="url"),
 
 # -------------------------------
 # Barca Managers Page
-mgr_path = '/Users/Spade5/DSA/Projects/Soccer-Dash/df_barca_manager_tenures.pkl'
-manager_opts = pd.read_pickle(mgr_path)
 
+manager_opts = sbut.get_barca_manager_opts()
 
 barca_manager_page_layout = html.Div(children=[
     html.H1(children='Barcelona Manager Analysis'),
