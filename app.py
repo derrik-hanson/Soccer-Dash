@@ -127,7 +127,8 @@ app.layout = html.Div([dcc.Location(id="url"),
 # -------------------------------
 # Barca Managers Page
 
-manager_opts = sbut.get_barca_manager_opts()
+df_barca_managers = sbut.get_barca_manager_opts()
+barca_manager_opts = list(set(df_barca_managers['manager_name'].to_list()))
 
 barca_manager_page_layout = html.Div(children=[
     html.H1(children='Barcelona Manager Analysis'),
@@ -145,12 +146,12 @@ barca_manager_page_layout = html.Div(children=[
     dbc.Row([
         dbc.Col(html.Div(dcc.Dropdown(
            id='barca-manager-select1',
-           options=[{'label': i, 'value': i} for i in manager_opts['manager_name'].to_list()],
+           options=[{'label': i, 'value': i} for i in barca_manager_opts],
            value='Pep Guardiola'
         ))),
         dbc.Col(html.Div(dcc.Dropdown(
            id='barca-manager-select2',
-           options=[{'label': i, 'value': i} for i in manager_opts['manager_name'].to_list()],
+           options=[{'label': i, 'value': i} for i in barca_manager_opts],
            value='Pep Guardiola'
         ))),
     ]),

@@ -600,10 +600,33 @@ def get_barca_manager_opts():
     # todo - update for heroku
     # mgr_path = '/Users/Spade5/DSA/Projects/Soccer-Dash/df_barca_manager_tenures.pkl'
     # manager_opts = pd.read_pickle(mgr_path)
-    d = {'manager_name': ['pep guardiola', 'frank rijkard', 'tito']}
-    manager_opts = pd.DataFrame(data=d)
 
-    return manager_opts
+    # d = {'manager_name': ['pep guardiola', 'frank rijkard', 'tito']}
+    # manager_opts = pd.DataFrame(data=d)
+
+    manager_tenures = [
+    ['Ronald Koeman', 'Aug 19, 2020', 'Oct 28, 2021'],
+    ['Quique Setién', 'Jan 13, 2020', 'Aug 17, 2020'],
+    ['Ernesto Valverde', 'Jul 1, 2017', 'Jan 13, 2020'],
+    ['Luis Enrique', 'Jul 1, 2014', 'Jun 30, 2017'], 
+    ['Tata Martino', 'Jul 26, 2013', 'Jun 30, 2014'],
+    ['Tito Vilanova', 'Apr 1, 2013', 'Jul 19, 2013'],
+    ['Jordi Roura', 'Jan 24, 2013', 'Mar 31, 2013'],
+    ['Tito Vilanova', 'Jul 1, 2012', 'Jan 23, 2013'],
+    ['Pep Guardiola', 'Jul 1, 2008','Jun 30, 2012'], 
+    ['Frank Rijkaard', 'Jul 1, 2003', 'Jun 30, 2008'],
+    ]
+
+    df_manager_tenures = pd.DataFrame(manager_tenures)
+    df_manager_tenures.columns = ['manager_name', 'start_date', 'end_date']
+
+    def conv_mgr_date(date_str):
+        return datetime.strptime(date_str, "%b %d, %Y")
+
+    df_manager_tenures['start_date'] = df_manager_tenures['start_date'].apply(conv_mgr_date)
+    df_manager_tenures['end_date'] = df_manager_tenures['end_date'].apply(conv_mgr_date)
+
+    return df_manager_tenures
 
 
 
