@@ -14,11 +14,9 @@ import plotly.figure_factory as ff
 import sbutilities as sbut
 import soccerplotly as socly
 
-
 # ---------------------
 # -- Utility Functions 
 # ---------------------
-
 
 # team utility functions
 def get_team_events(df_act, active_team, event_type):
@@ -90,61 +88,9 @@ def make_player_match_summary(df, selected_player):
     df_msum = df_msum[['goals', 'total_xg','shots','assists', 'pass_completion_percent', 'carrys', 'dribbles_complete','playing_time']]
     df_msum.columns = [s.replace('_', ' ') for s in df_msum.columns]
     return df_msum
-
-# Player selection utility functions
-
-
-# ------------------
-# -- Data 
-# ------------------
-
-#--------------------
-# data selection 
-comp_opts = sbut.get_comp_opts()
+ 
 
 
-#-----------------
-all_comps = sb.competitions()
-comps_360 = all_comps[all_comps['match_available_360'].apply(lambda x: isinstance(x, str))]
-df = comps_360
-
-# initital data fetch 
-euro_final_mid = 3795506
-euro_final_frames = sbut.get_local_360_file(euro_final_mid)
-euro_final_events = sb.events(match_id=3795506, split=True, flatten_attrs=True)
-df_all_evs = sb.events(match_id=3795506, split=False, flatten_attrs=True)
-
-euro_combo_df = sbut.join_events_split_to_frames(euro_final_frames, euro_final_events)
-test_row = euro_combo_df['shots'].iloc[4]
-fig_frame = socly.plot_frame(test_row)
-
-# player event graphs
-selected_player = 'Ciro Immobile' 
-selected_events = 'shots'
-df_pl_shot = get_player_events(euro_combo_df, selected_player, selected_events)
-fig_player_shots = socly.plot_shots_xg(df_pl_shot, title=f"Shots - {selected_player}")
-
-
-# Team Shots 
-selected_team_1 = 'Italy'
-selected_team_ev_typ = 'shots'
-df_tm_shot = get_team_events(euro_combo_df, selected_team_1, selected_team_ev_typ)
-fig_team_shots = socly.plot_shots_xg(df_tm_shot, title=f"Shots - {selected_team_1}")
-
-# ------------------
-# -- UI Preprocessing
-# ------------------
-italy_all_players = sbut.get_all_team_players_match(euro_final_events,'Italy')
-italy_player_opts = [{'label': p, 'value': p} for p in italy_all_players['player_name'].unique().tolist()]
-df_t = italy_all_players
-df_t = df_t.rename({'player_name': 'Player', 'position_name': 'Position'}, axis=1)
-
-eng_all_players = sbut.get_all_team_players_match(euro_final_events,'England')
-eng_player_opts = eng_all_players['player_name'].unique().tolist()
-
-pass_table_basic = make_pass_table_basic(euro_combo_df, selected_player)
-
-dribble_table_basic = make_dribble_table_basic(euro_combo_df, selected_player)
 # ------------------
 # -- Dash App 
 # ------------------
@@ -215,8 +161,8 @@ barca_manager_page_layout = html.Div(children=[
     html.Hr(),
     html.H2(children='Clusters Summary'),
     dbc.Row([
-        dbc.Col(html.Div(dcc.Graph(id='centers-fig1',figure=fig_frame)), width=6),
-        dbc.Col(html.Div(dcc.Graph(id='centers-fig2',figure=fig_frame)), width=6),
+        dbc.Col(html.Div(dcc.Graph(id='centers-fig1',figure=socly.plot_placeholder_pitch())), width=6),
+        dbc.Col(html.Div(dcc.Graph(id='centers-fig2',figure=socly.plot_placeholder_pitch())), width=6),
     ]),
 
     html.Hr(),
@@ -234,14 +180,11 @@ layout_frame_page = html.Div(children=[
     html.H1(children='A Single Frame from the Euro Final 2020'),
 
     dbc.Row([
-            dbc.Col(html.Div(dcc.Graph(id='fz-graph',figure=fig_frame)), width=6),
-            dbc.Col(html.Div(dcc.Graph(id='fz-graph',figure=fig_frame)), width=6)
+            dbc.Col(html.Div(dcc.Graph(id='fz-graph', figure=socly.plot_placeholder_pitch())), width=6),
+            dbc.Col(html.Div(dcc.Graph(id='fz-graph', figure=socly.plot_placeholder_pitch())), width=6)
         ]),
 
-    dcc.Graph(
-        id='fz-graph',
-        figure=fig_frame
-    ),
+    dcc.Graph(id='fz-graph', figure=socly.plot_placeholder_pitch()),
 ])
 # -------------------------------
 # Team and Frame placeholder
@@ -251,7 +194,7 @@ layout_team_page = html.Div(children=[
 
     dcc.Graph(
         id='team-shot-graph',
-        figure=fig_team_shots
+        figure=socly.plot_placeholder_pitch()
     ),
 
     html.Hr(),
@@ -279,7 +222,12 @@ layout_team_page = html.Div(children=[
 # -------------------------------
 
 # -------------------------------
-# Player UI Elements 
+# Player Select UI Elements 
+comp_opts = sbut.get_comp_opts()
+
+
+# -------------------------------
+# Player Report UI Elements 
 player_events_defense = ['Pressure', 'Duel', 'Ball Recovery', 'Block', 'Interception', 'Clearance']
 player_events_ball = ['Shot','Pass', 'Ball Receipt*', 'Carry', 'Dribble']
 player_events_other = ['Dispossessed', 'Miscontrol', 'Dribbled Past', 'Foul Won','Goal Keeper']
@@ -315,6 +263,7 @@ heat_checklist = html.Div(
 heat_controls = dbc.Card([heat_checklist], body=True,)
 
 # Player Selection Elements
+
 select_table_comp = dbc.Row([
         dbc.Col(
             dbc.Card(html.Div([
@@ -495,12 +444,12 @@ player_analysis_layout = html.Div(children=[
 
 
     # --------------------------------
-    # Player Passing
+    # Player Shooting
     html.Hr(),
     html.H1(children="Shooting Tendencies"),
 
     dbc.Row([
-        dbc.Col(html.Div(dcc.Graph(id='player-shot-plot',figure=fig_player_shots)),
+        dbc.Col(html.Div(dcc.Graph(id='player-shot-plot',figure=socly.plot_placeholder_pitch())),
             width=6),
         dbc.Col(html.Div([
             dbc.Card(html.Div([
@@ -571,9 +520,6 @@ player_analysis_layout = html.Div(children=[
             html.H3(children='Pass Stats'),
             dash_table.DataTable(
                 id='pass-basics',
-                columns = [{"name": i, "id": i} 
-                         for i in pass_table_basic.columns],
-                data=pass_table_basic.to_dict('records'),
                 style_cell={'textAlign':'left',
                     'minWidth': '30px', 'width': '100px', 'maxWidth': '150px',
                     'fontSize' : 14, 
@@ -614,9 +560,6 @@ player_analysis_layout = html.Div(children=[
             html.H3(children='Dribble Stats'),
             dash_table.DataTable(
                 id='dribble-basics',
-                columns = [{"name": i, "id": i} 
-                         for i in dribble_table_basic.columns],
-                data=dribble_table_basic.to_dict('records'),
                 style_cell={'textAlign':'center',
                     'minWidth': '100px', 'width': '150px', 'maxWidth': '150px',
                     'fontSize' : 14, 
@@ -803,8 +746,6 @@ def update_player_analysis_div(selected_match_id, active_cell, ball_evs, def_evs
         name_string = f'{selected_player}'
         
         print(selected_player)
-        # source data
-        #df_e = euro_combo_df
         df_e = sb.events(match_id=selected_match_id, split=True, flatten_attrs=True)
 
         # player shots

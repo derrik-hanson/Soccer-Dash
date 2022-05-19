@@ -186,9 +186,21 @@ def plot_frame(row, table=False, viz_ar=False):
     fig = draw_pitch_lines(fig)
     return fig
 
+def plot_placeholder_pitch():
+    fig = px.scatter()
+    fig = draw_pitch_lines(fig)
+    fig.add_annotation(x=30, y=10,
+        text="No Data to Display",
+        showarrow=False,
+        yshift=0, 
+        font=dict(
+            size=18,
+            color='Grey')
+        )
+
+    return fig
+
 def plot_shots_xg(df, pens=False, title=None):
-    
-   
     # check for no shot data 
     if len(df) == 0:
         fig = px.scatter()
