@@ -1,1 +1,1 @@
-web: gunicorn dash-player-report-0:server
+web: gunicorn app:server
