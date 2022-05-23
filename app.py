@@ -11,6 +11,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import plotly.figure_factory as ff
 
+import requests
+import pickle
+
 import sbutilities as sbut
 import soccerplotly as socly
 
@@ -129,6 +132,11 @@ app.layout = html.Div([dcc.Location(id="url"),
 
 df_barca_managers = sbut.get_barca_manager_opts()
 barca_manager_opts = list(set(df_barca_managers['manager_name'].to_list()))
+
+# load all assists to shots
+p2s_url = "https://github.com/derrik-hanson/Soccer-Dash/blob/622e46fbac71eb832ef4d8ddfc069f4047e561ed/df_barca_p2s_final.pkl?raw=true"
+p2s_temp = requests.get(p2s_url).content
+b_all_p2s = pickle.loads(p2s_temp)
 
 barca_manager_page_layout = html.Div(children=[
     html.H1(children='Barcelona Manager Analysis'),
@@ -792,8 +800,8 @@ def update_player_analysis_div(selected_match_id, active_cell, ball_evs, def_evs
     Input('xg-min-select', 'value')
 )
 def update_manager_clusters(selected_manager1, selected_manager2, selected_xg_min):
-    df_freq, cl_figs, center_fig, df_centers = sbut.make_barca_manager_clusters(selected_manager1, float(selected_xg_min))
-    df_freq2, cl_figs2, center_fig2, df_centers2 = sbut.make_barca_manager_clusters(selected_manager2, float(selected_xg_min))
+    df_freq, cl_figs, center_fig, df_centers = sbut.make_barca_manager_clusters(selected_manager1, float(selected_xg_min), b_all_p2s)
+    df_freq2, cl_figs2, center_fig2, df_centers2 = sbut.make_barca_manager_clusters(selected_manager2, float(selected_xg_min), b_all_p2s)
 
     cl_dcc_graphs = []
     for i, fig_i in enumerate(cl_figs):

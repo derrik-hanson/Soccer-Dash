@@ -13,6 +13,10 @@ import plotly.graph_objects as go
 from scipy.cluster.vq import whiten, vq, kmeans
 from numpy import random
 from datetime import datetime
+from urllib.request import urlopen
+import io 
+import requests
+import pickle
 
 #--------------------
 # Data Loading and Preprocessing
@@ -629,15 +633,11 @@ def get_barca_manager_opts():
     return df_manager_tenures
 
 
-
-def make_barca_manager_clusters(selected_manager, selected_xg_min):
+def make_barca_manager_clusters(selected_manager, selected_xg_min, all_p2s):
     """
     selected_manager : str
     selected_xg_min : float
     """
-    # load all assists to shots
-    p2s_path = '/Users/Spade5/DSA/Projects/Soccer-Dash/df_barca_p2s_final.pkl'
-    all_p2s = pd.read_pickle(p2s_path)
 
     # apply maks for selected manager and minimum xg required
     manager_mask = all_p2s['barca_manager']==selected_manager
