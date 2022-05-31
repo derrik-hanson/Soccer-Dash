@@ -147,7 +147,8 @@ barca_manager_page_layout = html.Div(children=[
     dcc.Dropdown(
        id='xg-min-select',
        options=[{'label': round(i,2), 'value': round(i,2)} for i in np.arange(0.05,1.0, 0.05)],
-       value='0.10'
+       value=0.15,
+       style={'color':'black'}
     ),
     
     html.H3(children='Managers to Compare'),
@@ -155,12 +156,14 @@ barca_manager_page_layout = html.Div(children=[
         dbc.Col(html.Div(dcc.Dropdown(
            id='barca-manager-select1',
            options=[{'label': i, 'value': i} for i in barca_manager_opts],
-           value='Pep Guardiola'
+           value='Pep Guardiola',
+           style={'color':'black'}
         ))),
         dbc.Col(html.Div(dcc.Dropdown(
            id='barca-manager-select2',
            options=[{'label': i, 'value': i} for i in barca_manager_opts],
-           value='Pep Guardiola'
+           value='Luis Enrique',
+           style={'color':'black'}
         ))),
     ]),
 
