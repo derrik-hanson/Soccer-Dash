@@ -103,10 +103,10 @@ server = app.server
 
 navbar = dbc.NavbarSimple(
             children=[
-                dbc.NavLink("Home", href="/", active="exact"),
+                dbc.NavLink("About", href="/", active="exact"),
                 dbc.NavLink("Player Match Report", href="/player-page", active="exact"),
                 dbc.NavLink("Team Analysis", href='/team-page', active="exact"),
-                dbc.NavLink("Frame ", href='/frame-page', active="exact"),
+                # dbc.NavLink("Frame ", href='/frame-page', active="exact"),
                 dbc.NavLink("Barca Managers", href='/barca-manager-page', active="exact"),
             ],
             brand="Socly Insight Engine",
@@ -187,6 +187,7 @@ barca_manager_page_layout = html.Div(children=[
 
 # -------------------------------
 # Team and Frame placeholder
+
 layout_frame_page = html.Div(children=[
     html.H1(children='A Single Frame from the Euro Final 2020'),
 
@@ -200,8 +201,10 @@ layout_frame_page = html.Div(children=[
 # -------------------------------
 # Team and Frame placeholder
 layout_team_page = html.Div(children=[
+    html.H1(children="Team Analysis"),
 
-    html.H1(children='Team Analysis'),
+    html.H2(children="Under Development"), 
+    html.P(children="... Page Under Development ..."),
 
     dcc.Graph(
         id='team-shot-graph',
@@ -209,17 +212,23 @@ layout_team_page = html.Div(children=[
     ),
 
     html.Hr(),
+    html.H1(children="Expected Threat (xT) Model"),
+
+    html.Hr(),
+    html.H1(children="Attacking Style"),
+
+    html.Hr(),
     html.H1(children="Regaining Possession"),
 
     html.Hr(),
-    html.H1(children="Goal Plot / All Shots Plot - w/ xG slider"),
+    html.H1(children="Goal Plot / All Shots Plot - with xG slider"),
 
     html.Hr(),
     html.H1(children="Assist Heatmap"),
-    html.H1(children="Pass to shot Heatmap - w/ xG slider"),
+    html.H3(children="Pass to shot Heatmap - with xG slider"),
 
     html.Hr(),
-    html.H1(children="Passing Matrx / Passing Network Plot"),
+    html.H1(children="Passing Matrix / Passing Network Plot"),
 
     html.Hr(),
     html.H1(children="Possession Regained Heatmap"),
@@ -298,6 +307,7 @@ select_table_comp = dbc.Row([
                     'color': 'white'
                 },
                 style_as_list_view=True,
+                active_cell={'row':0, 'column':3},
             )], 
             className="mb-4"
             ),
@@ -326,6 +336,7 @@ select_table_season = dbc.Row([
                     'color': 'white'
                 },
                 style_as_list_view=True,
+                active_cell={'row':14, 'column':4},
             )], 
             className="mb-4"
             ),
@@ -354,6 +365,7 @@ select_table_match = dbc.Row([
                     'color': 'white'
                 },
                 style_as_list_view=True,
+                active_cell={'row':0, 'column':5},
             )], 
             className="mb-4"
             ),
@@ -382,6 +394,7 @@ select_table_player = dbc.Row([
                     'color': 'white'
                 },
                 style_as_list_view=True,
+                active_cell={'row':18, 'column':1},
             )], 
             className="mb-4"
             ),
@@ -391,22 +404,35 @@ select_table_player = dbc.Row([
     ])
 
 player_select_layout = html.Div(children=[
-            html.H1(children='Player Analysis'),
+            html.H1(children="Player Analysis"),
             html.Hr(),
 
-            html.H3(children='Select competition'),
+            html.H3(children="Select competition"),
+            html.P(children="select from column:"),
+            html.P(children="competition_id", style={'color': 'rgb(238,115,178)'}),
             select_table_comp,
 
-            html.H3(children='Select Season'),
+            html.Hr(),
+            html.H3(children="Select Season"),
+            html.P(children="select from column:"),
+            html.P(children="season_id", style={'color': 'rgb(238,115,178)'}),
             select_table_season,
 
-            html.H3(children='Select Match'), 
+            html.Hr(),
+            html.H3(children="Select Match"), 
+            html.P(children="select from column:"),
+            html.P(children="match_id", style={'color': 'rgb(238,115,178)'}),
             select_table_match,
 
-            html.H3(children='Select Player'),
+            html.Hr(),
+            html.H3(children="Select Player"),
+            html.P(children="select from column:"),
+            html.P(children="player_name", style={'color': 'rgb(238,115,178)'}),
             select_table_player,
 
-            #html.H3(children='Select Team'),
+            html.Hr(),
+            html.H4(children="When Selection is complete, scroll to the top of the page and click the box 'Player Match Report'",
+                    style={'color': 'rgb(238,115,178)'}),
         ])
 
 player_analysis_layout = html.Div(children=[
@@ -609,8 +635,8 @@ player_analysis_layout = html.Div(children=[
 # ------------------------
 # Player Page Layout
 player_tabs = html.Div([
-                dcc.Tabs(id="player-tab", value='tab-player-select', children=[
-                    dcc.Tab(label='Select', value='tab-player-select',
+                dcc.Tabs(id="player-tab", value='tab-player-analysis', children=[
+                    dcc.Tab(label='Select Player', value='tab-player-select',
                             children=[player_select_layout]),
                     dcc.Tab(label='Player Match Report', value='tab-player-analysis',
                             children=[player_analysis_layout]),
@@ -827,7 +853,7 @@ def update_manager_clusters(selected_manager1, selected_manager2, selected_xg_mi
 # ------------------
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
 
 
 
